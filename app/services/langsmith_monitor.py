@@ -30,32 +30,32 @@ class LangSmithMonitor:
     def __init__(self, project_name: str = "qa-system-gemini"):
         """
         Initialize LangSmith Monitor
-        
+
         Args:
             project_name: Name of the project in LangSmith
         """
         self.project_name = project_name
         self.is_connected = False
         self.client = None
-        
+
         # Check if LangSmith is available
         if not langsmith_available:
             logger.error("LangSmith not available. Install langsmith package.")
             return
-            
+
         # Check for API key
         api_key = os.getenv("LANGCHAIN_API_KEY")
         if not api_key:
             logger.warning("LANGCHAIN_API_KEY not found in environment variables.")
             logger.warning("Set LANGCHAIN_API_KEY to enable LangSmith monitoring.")
             return
-            
+
         # Initialize LangSmith client
         try:
             self.client = Client(api_key=api_key)
             self.is_connected = True
             logger.info(f"Successfully connected to LangSmith with project: {project_name}")
-            
+
             # Create project if it doesn't exist
             try:
                 projects = self.client.list_projects()
@@ -64,22 +64,22 @@ class LangSmithMonitor:
                     logger.info(f"Created new LangSmith project: {project_name}")
             except Exception as e:
                 logger.warning(f"Could not create project: {str(e)}")
-                
+
         except Exception as e:
             logger.error(f"Error connecting to LangSmith: {str(e)}")
-            
-    def trace(self, 
-              run_type: str = "llm", 
+
+    def trace(self,
+              run_type: str = "llm",
               name: Optional[str] = None,
               tags: Optional[List[str]] = None):
         """
         Decorator to trace function calls in LangSmith
-        
+
         Args:
             run_type: Type of run (llm, chain, tool)
             name: Name of the run
             tags: List of tags to apply to the run
-            
+
         Returns:
             Decorated function
         """
@@ -89,33 +89,33 @@ class LangSmithMonitor:
                 if not self.is_connected:
                     # If LangSmith is not connected, just run the function
                     return func(*args, **kwargs)
-                    
+
                 # Extract inputs
                 inputs = {}
-                
+
                 # Handle different input patterns
                 if len(args) > 0:
                     inputs["args"] = args
-                
+
                 # Add kwargs to inputs
                 inputs.update(kwargs)
-                
+
                 # Generate run name if not provided
                 run_name = name or f"{func.__name__}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-                
+
                 # Start timing
                 start_time = time.time()
-                
+
                 # Create run tree
                 run_id = str(uuid.uuid4())
-                
+
                 try:
                     # Call the function
                     result = func(*args, **kwargs)
-                    
+
                     # Calculate execution time
                     execution_time = time.time() - start_time
-                    
+
                     # Process outputs
                     outputs = {}
                     if hasattr(result, "text"):
@@ -124,7 +124,7 @@ class LangSmithMonitor:
                         outputs = result.__dict__
                     else:
                         outputs["result"] = result
-                        
+
                     # Log successful run
                     self._log_run(
                         run_id=run_id,
@@ -136,13 +136,13 @@ class LangSmithMonitor:
                         execution_time=execution_time,
                         tags=tags or []
                     )
-                    
+
                     return result
-                    
+
                 except Exception as e:
                     # Calculate execution time
                     execution_time = time.time() - start_time
-                    
+
                     # Log failed run
                     self._log_run(
                         run_id=run_id,
@@ -154,13 +154,13 @@ class LangSmithMonitor:
                         execution_time=execution_time,
                         tags=tags or []
                     )
-                    
+
                     # Re-raise the exception
                     raise
-                    
+
             return wrapper
         return decorator
-        
+
     def _log_run(self,
                 run_id: str,
                 run_type: str,
@@ -172,7 +172,7 @@ class LangSmithMonitor:
                 tags: List[str]):
         """
         Log a run to LangSmith
-        
+
         Args:
             run_id: Unique ID for the run
             run_type: Type of run (llm, chain, tool)
@@ -199,22 +199,38 @@ class LangSmithMonitor:
                 },
                 tags=tags
             )
-            
+
             # Submit run to LangSmith
-            self.client.create_run(
-                project_name=self.project_name,
-                run=run
-            )
-            
+            try:
+                # Try the newer API format
+                self.client.create_run(
+                    project_name=self.project_name,
+                    run=run
+                )
+            except TypeError:
+                # Fall back to older API format
+                self.client.create_run(
+                    project_name=self.project_name,
+                    name=run.name,
+                    inputs=run.inputs,
+                    run_type=run.run_type,
+                    outputs=run.outputs,
+                    error=run.error,
+                    start_time=run.start_time,
+                    end_time=run.end_time,
+                    extra=run.extra,
+                    tags=run.tags
+                )
+
             logger.info(f"Logged run to LangSmith: {name} ({run_id})")
-            
+
         except Exception as e:
             logger.error(f"Error logging run to LangSmith: {str(e)}")
-            
+
     def log_feedback(self, run_id: str, key: str, score: float, comment: Optional[str] = None):
         """
         Log feedback for a run
-        
+
         Args:
             run_id: ID of the run
             key: Feedback key (e.g., "relevance", "accuracy")
@@ -224,7 +240,7 @@ class LangSmithMonitor:
         if not self.is_connected:
             logger.warning("LangSmith not connected. Cannot log feedback.")
             return
-            
+
         try:
             self.client.create_feedback(
                 run_id=run_id,
