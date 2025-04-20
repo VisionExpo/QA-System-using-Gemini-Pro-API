@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: qa-system-gemini
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn wsgi:application
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: ASTRA_DB_TOKEN
+        sync: false
+      - key: ASTRA_DB_ENDPOINT
+        sync: false
+      - key: ASTRA_DB_COLLECTION
+        value: qa_system_vectors
+      - key: LANGCHAIN_API_KEY
+        sync: false
+      - key: LANGCHAIN_PROJECT
+        value: qa-system-gemini
+      - key: LANGCHAIN_TRACING_V2
+        value: "true"
