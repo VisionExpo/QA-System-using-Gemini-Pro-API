@@ -51,12 +51,31 @@ async function handleSubmit(e) {
     // Show loading indicator
     showLoadingIndicator();
 
-    // Prepare form data for submission
-    const formData = new FormData();
-    formData.append('message', message);
+    // Prepare data for submission
+    let requestData;
+    let requestOptions;
 
     if (currentFile) {
+        // If we have a file, use FormData
+        const formData = new FormData();
+        formData.append('message', message);
         formData.append('file', currentFile);
+
+        requestData = formData;
+        requestOptions = {
+            method: 'POST',
+            body: formData
+        };
+    } else {
+        // For text-only, use JSON
+        requestData = { message };
+        requestOptions = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        };
     }
 
     try {
@@ -65,10 +84,7 @@ async function handleSubmit(e) {
         console.log('File:', currentFile ? currentFile.name : 'none');
 
         // Send request to server
-        const response = await fetch('/chat', {
-            method: 'POST',
-            body: formData
-        });
+        const response = await fetch('/chat', requestOptions);
 
         console.log('Response status:', response.status);
 
