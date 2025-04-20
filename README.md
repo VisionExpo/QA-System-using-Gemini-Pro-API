@@ -8,6 +8,7 @@ This project provides a Q&A interface using Google's Gemini models:
 
 - Text-based Q&A using Gemini Pro (app.py)
 - Image analysis using Gemini Pro Vision (vision.py)
+- Flask Web App for both text Q&A and image analysis (flask_app.py)
 - Deployment: [https://qa-system-using-gemini-pro-api-1.onrender.com/](https://qa-system-using-gemini-pro-api-1.onrender.com/)
 
 ## Key Features
@@ -27,6 +28,9 @@ This project provides a Q&A interface using Google's Gemini models:
 │   ├── vision.py           # Image analysis application
 │   └── requirements.txt    # Dependencies
 ├── app.py                  # Enhanced Q&A application
+├── flask_app.py            # Flask web application
+├── templates/              # HTML templates for Flask app
+│   └── index.html          # Main page template
 ├── setup.py                # Package setup
 ├── requirements.txt        # Dependencies
 ├── .env.example            # Example environment variables file
@@ -134,9 +138,19 @@ The `.gitignore` file is set up to exclude:
 
 ### Running the Application
 
+**Streamlit App:**
+
 ```bash
 streamlit run app.py
 ```
+
+**Flask Web App:**
+
+```bash
+python flask_app.py
+```
+
+Then open [http://127.0.0.1:5000](http://127.0.0.1:5000) in your web browser.
 
 ### Deactivating the Virtual Environment
 
