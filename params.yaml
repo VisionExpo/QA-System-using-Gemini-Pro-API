@@ -1,0 +1,35 @@
+base:
+  project: llm_monitor
+  random_state: 42
+  log_level: INFO
+
+data:
+  raw_data_path: data/raw
+  processed_data_path: data/processed
+  test_size: 0.2
+
+model:
+  model_name: gemini-pro
+  api_key_env: GOOGLE_API_KEY
+  temperature: 0.7
+  top_p: 0.9
+  max_tokens: 1024
+
+fine_tuning:
+  enabled: false
+  base_model: mistralai/Mistral-7B-v0.1
+  method: qlora
+  lora_r: 8
+  lora_alpha: 16
+  lora_dropout: 0.05
+  learning_rate: 3.0e-4
+  batch_size: 4
+  micro_batch_size: 1
+  num_epochs: 3
+
+monitoring:
+  enabled: true
+  track_latency: true
+  track_tokens: true
+  track_inputs: true
+  track_outputs: true
