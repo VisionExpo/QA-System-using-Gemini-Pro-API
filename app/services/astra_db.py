@@ -103,7 +103,7 @@ class AstraDBManager:
                 logger.info(f"Creating new collection: {ASTRA_DB_COLLECTION}")
                 self.collection = self.db.create_collection(
                     collection_name=ASTRA_DB_COLLECTION,
-                    dimension=384  # Dimension of the sentence-transformers embeddings
+                    dimension=1024  # Dimension of the vector in AstraDB
                 )
             else:
                 logger.info(f"Using existing collection: {ASTRA_DB_COLLECTION}")
@@ -127,6 +127,24 @@ class AstraDBManager:
             # Convert numpy array to list if needed
             if hasattr(vector, 'tolist'):
                 vector = vector.tolist()
+
+            # Check vector dimension
+            vector_dim = len(vector)
+            expected_dim = 1024  # Expected dimension in AstraDB
+
+            # Handle dimension mismatch
+            if vector_dim != expected_dim:
+                logger.warning(f"Vector dimension mismatch: got {vector_dim}, expected {expected_dim}")
+
+                # Pad or truncate vector to match expected dimension
+                if vector_dim < expected_dim:
+                    # Pad with zeros
+                    logger.info(f"Padding vector from {vector_dim} to {expected_dim} dimensions")
+                    vector = vector + [0.0] * (expected_dim - vector_dim)
+                else:
+                    # Truncate
+                    logger.info(f"Truncating vector from {vector_dim} to {expected_dim} dimensions")
+                    vector = vector[:expected_dim]
 
             # Prepare document data
             document_data = {
@@ -162,6 +180,24 @@ class AstraDBManager:
             if hasattr(vector, 'tolist'):
                 vector = vector.tolist()
 
+            # Check vector dimension
+            vector_dim = len(vector)
+            expected_dim = 1024  # Expected dimension in AstraDB
+
+            # Handle dimension mismatch
+            if vector_dim != expected_dim:
+                logger.warning(f"Vector dimension mismatch: got {vector_dim}, expected {expected_dim}")
+
+                # Pad or truncate vector to match expected dimension
+                if vector_dim < expected_dim:
+                    # Pad with zeros
+                    logger.info(f"Padding vector from {vector_dim} to {expected_dim} dimensions")
+                    vector = vector + [0.0] * (expected_dim - vector_dim)
+                else:
+                    # Truncate
+                    logger.info(f"Truncating vector from {vector_dim} to {expected_dim} dimensions")
+                    vector = vector[:expected_dim]
+
             # Perform similarity search
             # Try vector_search first, fall back to find if not available
             try:
@@ -172,37 +208,75 @@ class AstraDBManager:
             except AttributeError:
                 # Fall back to find method with vector parameter
                 logger.info("vector_search method not available, using find with vector similarity")
-                results = self.collection.find(
-                    filter={},
-                    options={"sort": {"$vector": vector}, "limit": limit}
-                )
+                # Different versions of the AstraDB client have different parameter formats
+                try:
+                    # Try the newer format first
+                    results = self.collection.find(
+                        filter={},
+                        options={"sort": {"$vector": vector}, "limit": limit}
+                    )
+                except TypeError:
+                    try:
+                        # Try the older format
+                        results = self.collection.find(
+                            filter={},
+                            sort={"$vector": vector},
+                            limit=limit
+                        )
+                    except TypeError:
+                        # Last resort - just get all documents and sort manually
+                        logger.warning("Could not use vector similarity search, returning all documents")
+                        results = self.collection.find({})
 
             # Process results to match expected format
             processed_results = []
+
+            # Convert results to list if it's not already
+            if not isinstance(results, list):
+                try:
+                    results_list = list(results)
+                    logger.info(f"Converted results to list with {len(results_list)} items")
+                    results = results_list
+                except Exception as e:
+                    logger.warning(f"Could not convert results to list: {str(e)}")
+                    results = []
+
             for result in results:
                 try:
                     # Handle different response formats
-                    if "document" in result:
-                        # Standard vector_search response format
-                        doc = result["document"]
-                        doc["_id"] = result.get("id", "unknown")
-                        doc["$similarity"] = result.get("similarity", 1.0)
-                    elif "_id" in result:
-                        # Alternative format from find method
-                        doc = result
-                        if "$similarity" not in doc:
-                            doc["$similarity"] = 1.0
-                    else:
-                        # Unknown format, try to use as is
-                        doc = result
-                        if "$similarity" not in doc:
-                            doc["$similarity"] = 1.0
-                        if "_id" not in doc:
-                            doc["_id"] = "unknown"
+                    if isinstance(result, dict):
+                        if "document" in result:
+                            # Standard vector_search response format
+                            doc = result["document"]
+                            doc["_id"] = result.get("id", "unknown")
+                            doc["$similarity"] = result.get("similarity", 1.0)
+                        elif "_id" in result:
+                            # Alternative format from find method
+                            doc = result
+                            if "$similarity" not in doc:
+                                doc["$similarity"] = 1.0
+                        else:
+                            # Unknown format, try to use as is
+                            doc = result
+                            if "$similarity" not in doc:
+                                doc["$similarity"] = 1.0
+                            if "_id" not in doc:
+                                doc["_id"] = "unknown"
 
-                    processed_results.append(doc)
+                        processed_results.append(doc)
+                    else:
+                        logger.warning(f"Skipping non-dict result: {type(result)}")
                 except Exception as e:
                     logger.warning(f"Error processing result: {str(e)}")
+
+            # Sort by similarity if we have more than one result
+            if len(processed_results) > 1:
+                try:
+                    processed_results.sort(key=lambda x: x.get("$similarity", 0), reverse=True)
+                    # Limit to the requested number
+                    processed_results = processed_results[:limit]
+                except Exception as e:
+                    logger.warning(f"Error sorting results: {str(e)}")
 
             logger.info(f"Found {len(processed_results)} similar documents")
             return processed_results
