@@ -5,6 +5,9 @@ env/
 .venv/
 ENV/
 
+#Creadentials
+gorulevishal984@gmail.com-token.json
+
 # Python
 __pycache__/
 *.py[cod]
