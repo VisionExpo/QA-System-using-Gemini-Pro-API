@@ -34,6 +34,14 @@ vision_model = genai.GenerativeModel('gemini-1.5-flash')  # Using the recommende
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", os.urandom(24).hex())
 
+# Enable CORS
+try:
+    from flask_cors import CORS
+    CORS(app)  # Enable CORS for all routes
+    print("CORS enabled for all routes")
+except ImportError:
+    print("Warning: flask_cors not installed. CORS is not enabled.")
+
 # Create uploads directory
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -78,15 +86,15 @@ def process_file(file):
     """Process uploaded file based on its type"""
     if not file:
         return None, None
-        
+
     filename = secure_filename(file.filename)
     file_path = os.path.join(UPLOAD_FOLDER, filename)
     file.save(file_path)
-    
+
     mime_type = mimetypes.guess_type(file_path)[0]
     file_type = None
     extracted_content = None
-    
+
     if mime_type:
         if mime_type.startswith('image/'):
             file_type = 'image'
@@ -104,7 +112,7 @@ def process_file(file):
         else:
             file_type = 'unknown'
             extracted_content = f"Unsupported file type: {mime_type}"
-    
+
     return file_type, extracted_content
 
 # Define routes
@@ -120,38 +128,44 @@ def chat():
             'answer': '',
             'error': None
         }
-        
-        # Get message from request
-        message = request.form.get('message', '')
-        
+
+        # Get message from request - handle both form data and JSON
+        if request.is_json:
+            data = request.get_json()
+            message = data.get('message', '')
+            print(f"Received JSON request with message: {message[:50]}...")
+        else:
+            message = request.form.get('message', '')
+            print(f"Received form request with message: {message[:50]}...")
+
         # Check if there's a file in the request
         file_type = None
         file_content = None
-        
+
         if 'file' in request.files and request.files['file'].filename:
             file = request.files['file']
             print(f"Received file: {file.filename}")
-            
+
             # Process the file based on its type
             file_type, file_content = process_file(file)
             print(f"File type: {file_type}")
-            
+
             if not file_type or not file_content:
                 return jsonify({'error': 'Failed to process the file'}), 400
-        
+
         # Generate content based on message and file
         if file_type == 'image':
             # For images, use the vision model
             image = Image.open(file_content)
             print(f"Using vision model: {vision_model._model_name}")
-            
+
             if message:
                 print(f"Generating content with message and image")
                 response = vision_model.generate_content([message, image])
             else:
                 print(f"Generating content with image only")
                 response = vision_model.generate_content(image)
-                
+
             response_data['answer'] = response.text
         elif file_type in ['pdf', 'docx', 'audio']:
             # For text-based files, include the extracted content in the prompt
@@ -163,11 +177,11 @@ def chat():
             # Text-only query
             if not message.strip():
                 return jsonify({'error': 'No message provided'}), 400
-                
+
             print(f"Using text model for message: {message[:50]}...")
             response = text_model.generate_content(message)
             response_data['answer'] = response.text
-        
+
         return jsonify(response_data)
     except Exception as e:
         import traceback
