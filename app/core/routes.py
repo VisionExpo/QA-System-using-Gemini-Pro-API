@@ -33,6 +33,45 @@ main_bp = Blueprint('main', __name__)
 def index():
     return render_template('index.html')
 
+@main_bp.route('/debug/astra')
+def debug_astra():
+    """Debug route to test AstraDB connection"""
+    try:
+        # Test storing a Q&A pair
+        question = "What is the capital of France?"
+        answer = "The capital of France is Paris."
+
+        # Generate vector
+        logger.info("Generating vector for test Q&A pair")
+        qa_vector = text_to_vector(question + " " + answer)
+
+        # Store in AstraDB
+        logger.info("Storing test Q&A pair in AstraDB")
+        qa_id = store_qa_pair(question, answer, qa_vector, {"test": True})
+
+        if qa_id:
+            logger.info(f"Successfully stored test Q&A pair in AstraDB with ID: {qa_id}")
+            return jsonify({
+                "success": True,
+                "message": f"Successfully stored test Q&A pair in AstraDB with ID: {qa_id}"
+            })
+        else:
+            logger.error("Failed to store test Q&A pair in AstraDB - no document ID returned")
+            return jsonify({
+                "success": False,
+                "message": "Failed to store test Q&A pair in AstraDB"
+            }), 500
+    except Exception as e:
+        import traceback
+        error_traceback = traceback.format_exc()
+        logger.error(f"Error in debug_astra route: {str(e)}")
+        logger.error(error_traceback)
+        return jsonify({
+            "success": False,
+            "message": f"Error: {str(e)}",
+            "traceback": error_traceback
+        }), 500
+
 @main_bp.route('/chat', methods=['POST'])
 def chat():
     try:
