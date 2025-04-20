@@ -139,11 +139,11 @@ class AstraDBManager:
                 document_data.update(metadata)
 
             # Insert document
-            self.collection.insert_one(
-                document_id=document_id,
-                document=document_data,
-                vector=vector
-            )
+            self.collection.insert_one({
+                "_id": document_id,
+                "document": document_data,
+                "vector": vector
+            })
 
             logger.info(f"Successfully stored vector with ID: {document_id}")
             return document_id
