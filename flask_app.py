@@ -22,7 +22,7 @@ genai.configure(api_key=api_key)
 
 # Initialize models
 text_model = genai.GenerativeModel('gemini-1.5-pro')
-vision_model = genai.GenerativeModel('gemini-pro-vision')  # Using the correct model name
+vision_model = genai.GenerativeModel('gemini-1.5-flash')  # Using the recommended model
 
 # Create Flask app
 app = Flask(__name__)
