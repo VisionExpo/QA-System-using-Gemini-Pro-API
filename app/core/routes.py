@@ -139,12 +139,21 @@ def chat():
             image = Image.open(file_path)
             logger.info(f"Using vision model: {vision_model._model_name}")
 
-            if message:
-                logger.info(f"Generating content with message and image")
-                response = vision_model.generate_content([message, image])
-            else:
-                logger.info(f"Generating content with image only")
-                response = vision_model.generate_content(image)
+            # Create a unique run ID for tracing
+            run_id = str(uuid.uuid4())
+
+            # Wrap the model call with LangSmith monitoring
+            @langsmith_monitor.trace(run_type="llm", name="vision_model_generate", tags=["vision", "image_analysis"])
+            def generate_vision_content(prompt, img):
+                if prompt:
+                    logger.info(f"Generating content with message and image")
+                    return vision_model.generate_content([prompt, img])
+                else:
+                    logger.info(f"Generating content with image only")
+                    return vision_model.generate_content(img)
+
+            # Call the wrapped function
+            response = generate_vision_content(message, image)
 
             response_data['answer'] = response.text
         elif file_info and file_info['text']:
@@ -156,7 +165,13 @@ def chat():
             combined_prompt = f"{message}\n\nContent extracted from {file_type} file:\n{extracted_text}"
             logger.info(f"Using text model with extracted content from {file_type}")
 
-            response = text_model.generate_content(combined_prompt)
+            # Wrap the model call with LangSmith monitoring
+            @langsmith_monitor.trace(run_type="llm", name="text_model_with_file", tags=["text", file_type.lower()])
+            def generate_text_content_with_file(prompt):
+                return text_model.generate_content(prompt)
+
+            # Call the wrapped function
+            response = generate_text_content_with_file(combined_prompt)
             response_data['answer'] = response.text
 
             # Store in vector database if available
@@ -175,7 +190,14 @@ def chat():
                 return jsonify({'error': 'No message provided'}), 400
 
             logger.info(f"Using text model for message: {message[:50]}...")
-            response = text_model.generate_content(message)
+
+            # Wrap the model call with LangSmith monitoring
+            @langsmith_monitor.trace(run_type="llm", name="text_model_only", tags=["text", "query_only"])
+            def generate_text_content(prompt):
+                return text_model.generate_content(prompt)
+
+            # Call the wrapped function
+            response = generate_text_content(message)
             response_data['answer'] = response.text
 
         # Clean up temporary file if needed
