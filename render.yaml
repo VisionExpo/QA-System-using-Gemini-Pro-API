@@ -2,7 +2,7 @@ services:
   - type: web
     name: qa-system-gemini
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: ./build.sh
     startCommand: gunicorn wsgi:application
     envVars:
       - key: PYTHON_VERSION
