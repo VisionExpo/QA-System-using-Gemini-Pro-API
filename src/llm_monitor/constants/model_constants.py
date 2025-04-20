@@ -1,0 +1,62 @@
+"""
+Constants for LLM Monitor
+"""
+
+# Log levels
+LOG_LEVEL_DEBUG = "DEBUG"
+LOG_LEVEL_INFO = "INFO"
+LOG_LEVEL_WARNING = "WARNING"
+LOG_LEVEL_ERROR = "ERROR"
+LOG_LEVEL_CRITICAL = "CRITICAL"
+
+# Default directories
+DEFAULT_LOG_DIR = "logs"
+DEFAULT_DATA_DIR = "data"
+DEFAULT_OUTPUT_DIR = "artifacts"
+DEFAULT_MODEL_DIR = "models"
+DEFAULT_CONFIG_DIR = "config"
+
+# Model types
+MODEL_TYPE_LLM = "llm"
+MODEL_TYPE_GEMINI = "gemini"
+MODEL_TYPE_OPENAI = "openai"
+MODEL_TYPE_HUGGINGFACE = "huggingface"
+MODEL_TYPE_CUSTOM = "custom"
+
+# Fine-tuning methods
+FINE_TUNING_METHOD_LORA = "lora"
+FINE_TUNING_METHOD_QLORA = "qlora"
+FINE_TUNING_METHOD_FULL = "full"
+
+# Dataset types
+DATASET_TYPE_INSTRUCTION = "instruction"
+DATASET_TYPE_CHAT = "chat"
+DATASET_TYPE_COMPLETION = "completion"
+
+# Evaluation metrics
+METRIC_EXACT_MATCH = "exact_match"
+METRIC_TOKEN_OVERLAP = "token_overlap"
+METRIC_SEMANTIC_SIMILARITY = "semantic_similarity"
+
+# Job status
+JOB_STATUS_PENDING = "pending"
+JOB_STATUS_RUNNING = "running"
+JOB_STATUS_COMPLETED = "completed"
+JOB_STATUS_FAILED = "failed"
+JOB_STATUS_CANCELLED = "cancelled"
+
+# Default model parameters
+DEFAULT_TEMPERATURE = 0.7
+DEFAULT_TOP_P = 0.9
+DEFAULT_TOP_K = 40
+DEFAULT_MAX_TOKENS = 1024
+DEFAULT_REPETITION_PENALTY = 1.0
+
+# Default fine-tuning parameters
+DEFAULT_LORA_R = 8
+DEFAULT_LORA_ALPHA = 16
+DEFAULT_LORA_DROPOUT = 0.05
+DEFAULT_LEARNING_RATE = 3e-4
+DEFAULT_BATCH_SIZE = 4
+DEFAULT_MICRO_BATCH_SIZE = 1
+DEFAULT_NUM_EPOCHS = 3
