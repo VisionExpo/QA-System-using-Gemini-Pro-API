@@ -33,11 +33,21 @@ except ImportError:
     sr = None
     logger.warning("SpeechRecognition not installed. Audio transcription will be unavailable.")
 
+# Check if ffmpeg is available for video processing
 try:
-    from moviepy.editor import VideoFileClip
-except ImportError:
-    VideoFileClip = None
-    logger.warning("moviepy not installed. Video processing will be unavailable.")
+    import subprocess
+    result = subprocess.run(['ffmpeg', '-version'],
+                           stdout=subprocess.PIPE,
+                           stderr=subprocess.PIPE,
+                           text=True)
+    ffmpeg_available = (result.returncode == 0)
+    if ffmpeg_available:
+        logger.info("ffmpeg is available for video processing")
+    else:
+        logger.warning("ffmpeg is not available. Video processing will be limited.")
+except FileNotFoundError:
+    ffmpeg_available = False
+    logger.warning("ffmpeg is not installed or not in the PATH. Video processing will be unavailable.")
 
 # Import YouTube processor with error handling
 try:
@@ -111,10 +121,10 @@ def transcribe_audio(file_path):
         return f"[Error transcribing audio: {str(e)}]"
 
 def extract_audio_from_video(file_path):
-    """Extract audio from video file and transcribe it"""
-    if not VideoFileClip:
-        logger.error("moviepy not installed. Cannot extract audio from video.")
-        return "[Video processing not available. moviepy not installed.]"
+    """Extract audio from video file and transcribe it using ffmpeg"""
+    if not ffmpeg_available:
+        logger.error("ffmpeg not installed. Cannot extract audio from video.")
+        return "[Video processing not available. ffmpeg not installed.]"
 
     if not sr:
         logger.error("SpeechRecognition not installed. Cannot transcribe audio from video.")
@@ -127,9 +137,9 @@ def extract_audio_from_video(file_path):
         temp_audio_path = temp_audio.name
         temp_audio.close()
 
-        # Extract audio from video
-        video = VideoFileClip(file_path)
-        video.audio.write_audiofile(temp_audio_path, logger=None)
+        # Extract audio from video using ffmpeg
+        cmd = ['ffmpeg', '-i', file_path, '-vn', '-acodec', 'pcm_s16le', '-ar', '44100', '-ac', '2', temp_audio_path, '-y']
+        subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
         # Transcribe the audio
         text = transcribe_audio(temp_audio_path)
@@ -139,6 +149,9 @@ def extract_audio_from_video(file_path):
 
         logger.info(f"Successfully extracted and transcribed audio from video")
         return text
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Error running ffmpeg: {e.stderr}")
+        return f"[Error extracting audio from video: ffmpeg error]"
     except Exception as e:
         logger.error(f"Error extracting audio from video: {str(e)}")
         return f"[Error extracting audio from video: {str(e)}]"
