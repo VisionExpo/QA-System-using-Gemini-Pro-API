@@ -51,7 +51,8 @@ import numpy as np
 
 # Initialize the sentence transformer model for vectorization
 try:
-    sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
+    # Use a model with 1024 dimensions to match AstraDB collection
+    sentence_model = SentenceTransformer('BAAI/bge-large-en-v1.5')
     logger.info("Sentence transformer model loaded successfully")
 except Exception as e:
     logger.error(f"Error loading sentence transformer model: {str(e)}")
