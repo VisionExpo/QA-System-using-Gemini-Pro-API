@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 # Import AstraDB with error handling
 try:
-    from astrapy.db import AstraDB
+    from astrapy import DataAPIClient
     astradb_available = True
     logger.info("AstraDB package successfully imported")
 except ImportError:
@@ -61,6 +61,7 @@ class AstraDBManager:
 
     def __init__(self):
         """Initialize AstraDB connection"""
+        self.client = None
         self.db = None
         self.collection = None
         self.is_connected = False
@@ -78,17 +79,25 @@ class AstraDBManager:
             logger.info(f"Attempting to connect to AstraDB with token: {ASTRA_DB_APPLICATION_TOKEN[:10]}...")
             logger.info(f"API endpoint: {ASTRA_DB_API_ENDPOINT}")
 
-            # Initialize AstraDB
-            self.db = AstraDB(
-                api_endpoint=ASTRA_DB_API_ENDPOINT,
-                token=ASTRA_DB_APPLICATION_TOKEN
-            )
+            # Initialize AstraDB client
+            self.client = DataAPIClient(ASTRA_DB_APPLICATION_TOKEN)
 
-            # Create or get collection
-            self.collection = self.db.create_collection(
-                collection_name=ASTRA_DB_COLLECTION,
-                dimension=384  # Dimension of the sentence-transformers embeddings
-            )
+            # Get the database
+            self.db = self.client.get_database_by_api_endpoint(ASTRA_DB_API_ENDPOINT)
+
+            # Check if collection exists, create if not
+            collection_names = self.db.list_collection_names()
+            logger.info(f"Available collections: {collection_names}")
+
+            if ASTRA_DB_COLLECTION not in collection_names:
+                logger.info(f"Creating new collection: {ASTRA_DB_COLLECTION}")
+                self.collection = self.db.create_collection(
+                    collection_name=ASTRA_DB_COLLECTION,
+                    dimension=384  # Dimension of the sentence-transformers embeddings
+                )
+            else:
+                logger.info(f"Using existing collection: {ASTRA_DB_COLLECTION}")
+                self.collection = self.db.get_collection(ASTRA_DB_COLLECTION)
 
             self.is_connected = True
             logger.info(f"Successfully connected to AstraDB collection: {ASTRA_DB_COLLECTION}")
