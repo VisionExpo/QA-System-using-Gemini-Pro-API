@@ -11,9 +11,9 @@ import uuid
 from werkzeug.utils import secure_filename
 
 from app.utils.file_handler import handle_uploaded_file, allowed_file
-from app.services.file_processor import process_file, is_url, is_youtube_url
+from app.services.file_processor import process_file, is_url, is_youtube_url, text_to_vector
 from app.services.youtube_service import summarize_youtube_video
-from app.services.vector_service import store_in_vector_db, find_similar_content
+from app.services.vector_service import store_in_vector_db, find_similar_content, store_qa_pair
 from app.services.langsmith_monitor import get_langsmith_monitor
 
 # Set up logging
@@ -115,10 +115,40 @@ def chat():
             if file_info['error']:
                 return jsonify({'error': f"Failed to process the file: {file_info['error']}"}), 400
 
-        # Find similar content if we have a vector
+        # Find similar content based on the message or file vector
         similar_content = []
-        if file_info and file_info['vector'] is not None:
-            similar_docs = find_similar_content(file_info['vector'])
+        message_vector = None
+
+        # Get vector from message if available
+        if message and message.strip():
+            message_vector = text_to_vector(message)
+
+        # Use file vector if available, otherwise use message vector
+        search_vector = file_info['vector'] if file_info and file_info['vector'] is not None else message_vector
+
+        if search_vector is not None:
+            # Search for similar content including Q&A pairs
+            similar_docs = find_similar_content(search_vector, limit=5)
+
+            # Process and categorize results
+            qa_pairs = []
+            other_docs = []
+
+            for doc in similar_docs:
+                if '_id' in doc and 'text' in doc:
+                    # Check if it's a Q&A pair
+                    if doc.get('type') == 'qa_pair' or ('question' in doc and 'answer' in doc):
+                        qa_pairs.append(doc)
+                    else:
+                        other_docs.append(doc)
+
+            # Log what we found
+            if qa_pairs:
+                logger.info(f"Found {len(qa_pairs)} similar Q&A pairs")
+            if other_docs:
+                logger.info(f"Found {len(other_docs)} similar documents")
+
+            # Process for display in UI
             for doc in similar_docs:
                 if '_id' in doc and 'text' in doc:
                     # Only include a snippet of the text to avoid large responses
@@ -128,10 +158,37 @@ def chat():
                         'text': text_snippet,
                         'type': doc.get('type', 'unknown'),
                         'url': doc.get('url', None),
-                        'similarity': doc.get('$similarity', 0)
+                        'similarity': doc.get('$similarity', 0),
+                        'is_qa_pair': doc.get('type') == 'qa_pair' or ('question' in doc and 'answer' in doc)
                     })
 
+            # Add to response data
             response_data['similar_content'] = similar_content
+
+            # Enhance the prompt with context from similar content
+            if similar_docs:
+                context_parts = []
+
+                # Add Q&A pairs first if available
+                if qa_pairs:
+                    qa_context = "\n\n".join([f"Q: {doc.get('question', '')}\nA: {doc.get('answer', '')}"
+                                           for doc in qa_pairs])
+                    context_parts.append(f"Similar questions and answers:\n{qa_context}")
+
+                # Add other document content
+                if other_docs:
+                    doc_context = "\n\n".join([doc.get('text', '')[:500] for doc in other_docs])
+                    context_parts.append(f"Context from similar documents:\n{doc_context}")
+
+                # Combine all context
+                if context_parts:
+                    context = "\n\n".join(context_parts)
+
+                    # Enhance the message with context
+                    if message:
+                        message = f"{message}\n\n{context}"
+                    else:
+                        message = f"Please analyze this content:\n\n{context}"
 
         # Generate content based on message and file
         if file_info and file_info['file_type'] == 'image':
@@ -176,6 +233,7 @@ def chat():
 
             # Store in vector database if available
             if file_info['vector'] is not None:
+                # Store the document content
                 metadata = {
                     'type': file_info['file_type'],
                     'query': message,
@@ -184,6 +242,16 @@ def chat():
                 doc_id = store_in_vector_db(extracted_text, file_info['vector'], metadata)
                 if doc_id:
                     logger.info(f"Stored {file_type} content in AstraDB with ID: {doc_id}")
+
+                # Also store the Q&A pair
+                qa_vector = text_to_vector(message + " " + response_data['answer'])
+                qa_metadata = {
+                    'source_type': file_info['file_type'],
+                    'source_id': doc_id
+                }
+                qa_id = store_qa_pair(message, response_data['answer'], qa_vector, qa_metadata)
+                if qa_id:
+                    logger.info(f"Stored Q&A pair in AstraDB with ID: {qa_id}")
         else:
             # Text-only query
             if not message.strip():
@@ -199,6 +267,16 @@ def chat():
             # Call the wrapped function
             response = generate_text_content(message)
             response_data['answer'] = response.text
+
+            # Store the Q&A pair in AstraDB
+            qa_vector = text_to_vector(message + " " + response_data['answer'])
+            qa_metadata = {
+                'source_type': 'direct_query',
+                'source_id': None
+            }
+            qa_id = store_qa_pair(message, response_data['answer'], qa_vector, qa_metadata)
+            if qa_id:
+                logger.info(f"Stored direct Q&A pair in AstraDB with ID: {qa_id}")
 
         # Clean up temporary file if needed
         if file_path and os.path.exists(file_path):
