@@ -17,7 +17,7 @@ if not api_key:
 genai.configure(api_key=api_key)
 
 # Initialize model
-model = genai.GenerativeModel('gemini-pro')
+model = genai.GenerativeModel('gemini-1.5-pro')
 
 def get_answer(question):
     """Get answer from Gemini Pro model"""
@@ -29,17 +29,17 @@ if __name__ == "__main__":
     print("------------------------------")
     print("Type 'exit' to quit")
     print()
-    
+
     while True:
         question = input("Ask a question: ")
-        
+
         if question.lower() in ['exit', 'quit', 'q']:
             break
-        
+
         if not question.strip():
             print("Please enter a question.")
             continue
-        
+
         print("\nThinking...\n")
         try:
             answer = get_answer(question)
