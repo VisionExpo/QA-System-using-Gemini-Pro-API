@@ -105,19 +105,81 @@ async function handleSubmit(e) {
         console.log('Message:', message);
         console.log('File:', currentFile ? currentFile.name : 'none');
 
-        // Send request to server
-        const response = await fetch('/chat', requestOptions);
+        // Add retry logic
+        let retries = 3;
+        let response;
+        let lastError;
 
-        console.log('Response status:', response.status);
+        while (retries > 0) {
+            try {
+                // Update loading message to show retry attempt if needed
+                if (retries < 3) {
+                    updateLoadingMessage(`Retrying request (attempt ${3-retries+1} of 3)...`);
+                }
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Server error:', errorText);
-            throw new Error(`Server error: ${response.status} ${response.statusText}\n${errorText}`);
+                // Send request to server with timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+                response = await fetch('/chat', {
+                    ...requestOptions,
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                // If successful, break out of retry loop
+                if (response.ok) {
+                    break;
+                }
+
+                // If we got a response but it's an error, handle based on status code
+                const errorText = await response.text();
+                console.error(`Server error (attempt ${3-retries+1}):`, errorText);
+                lastError = new Error(`Server error: ${response.status} ${response.statusText}\n${errorText}`);
+
+                // Don't retry for certain status codes
+                if (response.status === 400 || response.status === 404) {
+                    throw lastError;
+                }
+
+                // For other errors, retry
+                retries--;
+                if (retries > 0) {
+                    // Wait before retrying (exponential backoff)
+                    await new Promise(resolve => setTimeout(resolve, (3-retries) * 1000));
+                }
+            } catch (fetchError) {
+                console.error(`Fetch error (attempt ${3-retries+1}):`, fetchError);
+                lastError = fetchError;
+
+                // If it's an abort error (timeout), retry
+                if (fetchError.name === 'AbortError') {
+                    console.log('Request timed out, retrying...');
+                }
+
+                retries--;
+                if (retries > 0) {
+                    // Wait before retrying (exponential backoff)
+                    await new Promise(resolve => setTimeout(resolve, (3-retries) * 1000));
+                }
+            }
         }
 
-        const data = await response.json();
-        console.log('Response data:', data);
+        // If we've exhausted all retries and still have an error, throw it
+        if (!response || !response.ok) {
+            throw lastError || new Error('Failed to connect to server after multiple attempts');
+        }
+
+        // Parse the response
+        let data;
+        try {
+            data = await response.json();
+            console.log('Response data:', data);
+        } catch (jsonError) {
+            console.error('Error parsing JSON response:', jsonError);
+            throw new Error('Error parsing server response. Please try again.');
+        }
 
         // Remove loading indicator
         removeLoadingIndicator();
