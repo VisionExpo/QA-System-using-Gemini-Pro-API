@@ -37,19 +37,29 @@ def load_astra_token():
                 token_data = json.load(f)
                 logger.info(f"Successfully loaded AstraDB token from {ASTRA_DB_TOKEN_FILE}")
 
-                # Extract token
+                # Extract token - this should be the full token string
                 token = token_data.get('token')
+                if not token:
+                    # Try alternative key names that might be in the token file
+                    token = token_data.get('clientId') or token_data.get('client_id') or token_data.get('astra_token')
 
-                # Construct API endpoint from token data
-                # Format: https://{DB_ID}-{REGION}.apps.astra.datastax.com
-                # For this example, we'll use a default endpoint if not provided
-                endpoint = os.getenv("ASTRA_DB_API_ENDPOINT", "https://api.astra.datastax.com/v2/namespaces/default_keyspace/collections")
+                # Get API endpoint
+                endpoint = token_data.get('endpoint') or token_data.get('api_endpoint') or token_data.get('astra_api_endpoint')
 
+                # If no endpoint in token file, use environment variable or default
+                if not endpoint:
+                    endpoint = os.getenv("ASTRA_DB_API_ENDPOINT",
+                                        "https://633e05a8-a7b4-461d-ad6e-582f097793b7-us-east-2.apps.astra.datastax.com")
+
+                logger.info(f"Using AstraDB endpoint: {endpoint}")
                 return token, endpoint
         else:
             logger.warning(f"AstraDB token file not found: {ASTRA_DB_TOKEN_FILE}")
             # Fall back to environment variables
-            return os.getenv("ASTRA_DB_APPLICATION_TOKEN"), os.getenv("ASTRA_DB_API_ENDPOINT")
+            token = os.getenv("ASTRA_DB_APPLICATION_TOKEN")
+            endpoint = os.getenv("ASTRA_DB_API_ENDPOINT",
+                               "https://633e05a8-a7b4-461d-ad6e-582f097793b7-us-east-2.apps.astra.datastax.com")
+            return token, endpoint
     except Exception as e:
         logger.error(f"Error loading AstraDB token: {str(e)}")
         return None, None
@@ -112,21 +122,31 @@ class AstraDBManager:
 
         try:
             # Prepare document
-            document = {
-                "_id": str(uuid.uuid4()),
+            document_id = str(uuid.uuid4())
+
+            # Convert numpy array to list if needed
+            if hasattr(vector, 'tolist'):
+                vector = vector.tolist()
+
+            # Prepare document data
+            document_data = {
                 "text": text,
-                "$vector": vector.tolist() if hasattr(vector, 'tolist') else vector,
                 "timestamp": datetime.now().isoformat()
             }
 
             # Add metadata if provided
             if metadata:
-                document.update(metadata)
+                document_data.update(metadata)
 
             # Insert document
-            result = self.collection.insert_one(document)
-            logger.info(f"Successfully stored vector with ID: {result['_id']}")
-            return result["_id"]
+            self.collection.insert_one(
+                document_id=document_id,
+                document=document_data,
+                vector=vector
+            )
+
+            logger.info(f"Successfully stored vector with ID: {document_id}")
+            return document_id
         except Exception as e:
             logger.error(f"Error storing vector in AstraDB: {str(e)}")
             return None
@@ -143,13 +163,22 @@ class AstraDBManager:
                 vector = vector.tolist()
 
             # Perform similarity search
-            results = self.collection.vector_find(
+            results = self.collection.vector_search(
                 vector=vector,
                 limit=limit
             )
 
-            logger.info(f"Found {len(results)} similar documents")
-            return results
+            # Process results to match expected format
+            processed_results = []
+            for result in results:
+                # Add the similarity score to the document
+                doc = result["document"]
+                doc["_id"] = result["id"]
+                doc["$similarity"] = result["similarity"]
+                processed_results.append(doc)
+
+            logger.info(f"Found {len(processed_results)} similar documents")
+            return processed_results
         except Exception as e:
             logger.error(f"Error searching similar vectors in AstraDB: {str(e)}")
             return []
@@ -161,13 +190,9 @@ class AstraDBManager:
             return False
 
         try:
-            result = self.collection.delete_one({"_id": document_id})
-            success = result.get("deletedCount", 0) > 0
-            if success:
-                logger.info(f"Successfully deleted document with ID: {document_id}")
-            else:
-                logger.warning(f"Document with ID {document_id} not found")
-            return success
+            self.collection.delete_one(document_id)
+            logger.info(f"Successfully deleted document with ID: {document_id}")
+            return True
         except Exception as e:
             logger.error(f"Error deleting document from AstraDB: {str(e)}")
             return False
@@ -179,12 +204,16 @@ class AstraDBManager:
             return None
 
         try:
-            result = self.collection.find_one({"_id": document_id})
+            result = self.collection.find_one(document_id)
             if result:
+                # Format the result to match expected format
+                doc = result["document"]
+                doc["_id"] = document_id
                 logger.info(f"Successfully retrieved document with ID: {document_id}")
+                return doc
             else:
                 logger.warning(f"Document with ID {document_id} not found")
-            return result
+                return None
         except Exception as e:
             logger.error(f"Error getting document from AstraDB: {str(e)}")
             return None
