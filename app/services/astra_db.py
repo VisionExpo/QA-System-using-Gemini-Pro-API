@@ -163,10 +163,19 @@ class AstraDBManager:
                 vector = vector.tolist()
 
             # Perform similarity search
-            results = self.collection.vector_search(
-                vector=vector,
-                limit=limit
-            )
+            # Try vector_search first, fall back to find if not available
+            try:
+                results = self.collection.vector_search(
+                    vector=vector,
+                    limit=limit
+                )
+            except AttributeError:
+                # Fall back to find method with vector parameter
+                results = self.collection.find(
+                    filter={},
+                    sort={"$vector": vector},
+                    limit=limit
+                )
 
             # Process results to match expected format
             processed_results = []
