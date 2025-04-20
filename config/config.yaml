@@ -1,0 +1,49 @@
+project_name: llm_monitor
+artifacts_dir: artifacts
+
+logging:
+  log_level: INFO
+  log_dir: logs
+  console_log: true
+  file_log: true
+  log_format: "%(asctime)s | %(levelname)s | %(module)s | %(message)s"
+
+models:
+  gemini-pro:
+    model_type: gemini
+    api_key_env: GOOGLE_API_KEY
+    timeout: 30
+    max_retries: 3
+    monitoring:
+      enabled: true
+      track_latency: true
+      track_tokens: true
+      track_inputs: true
+      track_outputs: true
+      metrics_file: metrics.json
+
+  gemini-pro-vision:
+    model_type: gemini
+    api_key_env: GOOGLE_API_KEY
+    timeout: 30
+    max_retries: 3
+    monitoring:
+      enabled: true
+      track_latency: true
+      track_tokens: true
+      track_inputs: true
+      track_outputs: true
+      metrics_file: metrics.json
+
+fine_tuning:
+  enabled: false
+  base_model: mistralai/Mistral-7B-v0.1
+  output_dir: models/fine_tuned
+  use_qlora: true
+  lora_r: 8
+  lora_alpha: 16
+  lora_dropout: 0.05
+  num_epochs: 3
+  learning_rate: 3.0e-4
+  batch_size: 4
+  micro_batch_size: 1
