@@ -1,70 +1,95 @@
-# QA System using Gemini Pro API
+# 🤖 QA System using Gemini Pro API
 
-A Question and Answer system built with Google's Gemini Pro API.
+<div align="center">
 
-## Application Features
+![Version](https://img.shields.io/badge/version-1.0-blue?style=flat)
+![Python](https://img.shields.io/badge/Python-3.10-blue?style=flat&logo=python&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-3.1.0-lightgrey?style=flat&logo=flask&logoColor=white)
+![Gemini](https://img.shields.io/badge/Gemini_Pro-API-orange?style=flat&logo=google&logoColor=white)
+![AstraDB](https://img.shields.io/badge/AstraDB-Vector_Store-blueviolet?style=flat&logo=datastax&logoColor=white)
+![LangSmith](https://img.shields.io/badge/LangSmith-Monitoring-green?style=flat)
+![License](https://img.shields.io/badge/license-MIT-green?style=flat)
+[![Deployment](https://img.shields.io/badge/Deployed_on-Render-purple?style=flat&logo=render&logoColor=white)](https://qa-system-using-gemini-pro-api-1.onrender.com/)
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-black?style=flat&logo=github&logoColor=white)](https://github.com/VisionExpo/QA-System-using-Gemini-Pro-API)
 
-This project provides a Q&A interface using Google's Gemini models:
+</div>
 
-- Text-based Q&A using Gemini Pro (app.py)
-- Image analysis using Gemini Pro Vision (vision.py)
-- Flask Web App for both text Q&A and image analysis (flask_app.py)
-- Deployment: [https://qa-system-using-gemini-pro-api-1.onrender.com/](https://qa-system-using-gemini-pro-api-1.onrender.com/)
+A powerful Question and Answer system built with Google's Gemini Pro API, featuring vector storage with AstraDB and LLM monitoring with LangSmith.
 
-## Key Features
+## ✨ Features
 
-- **Text Q&A**: Ask questions and get detailed answers
-- **Image Analysis**: Upload images for AI-powered analysis
-- **User-friendly Interface**: Clean Streamlit interface
-- **API Integration**: Seamless integration with Google's Gemini API
-- **Environment Variable Support**: Secure API key management
+- 💬 **Text Q&A**: Ask questions and get detailed answers powered by Gemini Pro
+- 🖼️ **Image Analysis**: Upload images for AI-powered analysis with Gemini Pro Vision
+- 📄 **Document Processing**: Extract and analyze text from PDF, DOCX, and other file formats
+- 🔗 **URL Processing**: Analyze content from web pages and YouTube videos
+- 🔍 **Semantic Search**: Find similar content using vector embeddings
+- 📊 **LLM Monitoring**: Track and analyze model performance with LangSmith
+- 🗄️ **Vector Storage**: Store and retrieve vectors using AstraDB
+- 🌐 **Web Interface**: Clean, responsive Flask web application
 
-## Project Structure
+## 🚀 Tech Stack
 
-```plaintext
-.
-├── Gemini LLM App/         # Main application directory
-│   ├── app.py              # Text Q&A application
-│   ├── vision.py           # Image analysis application
-│   └── requirements.txt    # Dependencies
-├── app.py                  # Enhanced Q&A application
-├── flask_app.py            # Flask web application
-├── templates/              # HTML templates for Flask app
-│   └── index.html          # Main page template
-├── setup.py                # Package setup
-├── requirements.txt        # Dependencies
-├── .env.example            # Example environment variables file
-├── .gitignore              # Git ignore file
-├── setup_env.bat           # Windows setup script
-├── setup_env.sh            # macOS/Linux setup script
-└── venv/                   # Virtual environment (not tracked by git)
+<div align="center">
+
+| Technology | Purpose |
+|------------|---------|
+| ![Python](https://img.shields.io/badge/Python-3.10-blue?style=flat&logo=python&logoColor=white) | Core language |
+| ![Flask](https://img.shields.io/badge/Flask-3.1.0-lightgrey?style=flat&logo=flask&logoColor=white) | Web framework |
+| ![Gemini Pro](https://img.shields.io/badge/Gemini_Pro-API-orange?style=flat&logo=google&logoColor=white) | LLM model |
+| ![AstraDB](https://img.shields.io/badge/AstraDB-Vector_Store-blueviolet?style=flat&logo=datastax&logoColor=white) | Vector database |
+| ![LangSmith](https://img.shields.io/badge/LangSmith-Monitoring-green?style=flat) | LLM monitoring |
+| ![Sentence Transformers](https://img.shields.io/badge/Sentence_Transformers-4.1.0-red?style=flat) | Text embeddings |
+| ![Docker](https://img.shields.io/badge/Docker-Ready-blue?style=flat&logo=docker&logoColor=white) | Containerization |
+| ![Render](https://img.shields.io/badge/Render-Deployment-purple?style=flat&logo=render&logoColor=white) | Cloud hosting |
+
+</div>
+
+## 🏗️ Architecture
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│                 │     │                 │     │                 │
+│  Web Interface  │────▶│  Flask Backend  │────▶│   Gemini Pro    │
+│                 │     │                 │     │                 │
+└─────────────────┘     └────────┬────────┘     └─────────────────┘
+                               │
+                               ▼
+                 ┌─────────────────────────────┐
+                 │                             │
+                 │  File/URL/Image Processing  │
+                 │                             │
+                 └──────────────┬──────────────┘
+                               │
+                 ┌─────────────▼──────────────┐
+                 │                            │
+                 │  Sentence Transformers     │
+                 │  (Vector Embeddings)       │
+                 │                            │
+                 └──────────────┬─────────────┘
+                               │
+          ┌──────────────────┐ │ ┌───────────────────┐
+          │                  │ │ │                   │
+          │     AstraDB      │◀┴─▶│    LangSmith      │
+          │  (Vector Store)  │   │    (Monitoring)   │
+          │                  │   │                   │
+          └──────────────────┘   └───────────────────┘
 ```
 
-## Development Setup
+## 🔧 Installation
 
-### Virtual Environment
+### Prerequisites
 
-This project uses a virtual environment to isolate dependencies. The `.gitignore` file is configured to exclude the virtual environment directory from version control.
+- Python 3.10 or higher
+- Google API key for Gemini Pro
+- AstraDB account and token
+- (Optional) LangSmith API key
 
-### .gitignore
-
-The `.gitignore` file is set up to exclude:
-
-- Virtual environment directories (`venv/`, `.venv/`, etc.)
-- Python cache files and bytecode
-- Environment variables file (`.env`)
-- Log files
-- IDE-specific files
-- Build artifacts
-
-## Installation
-
-### Option 1: Using Setup Scripts (Recommended)
+### Option 1: Using Setup Scripts (Recommended) 🚀
 
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/yourusername/QA-System-using-Gemini-Pro-API.git
+   git clone https://github.com/VisionExpo/QA-System-using-Gemini-Pro-API.git
    cd QA-System-using-Gemini-Pro-API
    ```
 
@@ -84,19 +109,23 @@ The `.gitignore` file is set up to exclude:
    ```
 
    This script will:
-   - Create a virtual environment
-   - Activate the virtual environment
-   - Install dependencies
-   - Create a `.env` file from the example if it doesn't exist
+   - 🔨 Create a virtual environment
+   - ⚡ Activate the virtual environment
+   - 📦 Install dependencies
+   - 🔑 Create a `.env` file from the example if it doesn't exist
 
-3. Edit the `.env` file and replace `your_api_key_here` with your actual API key from [Google AI Studio](https://makersuite.google.com/app/apikey).
+3. Edit the `.env` file and add your API keys:
+   - `GOOGLE_API_KEY`: Your Google API key
+   - `ASTRA_DB_TOKEN`: Your AstraDB token
+   - `ASTRA_DB_ENDPOINT`: Your AstraDB endpoint
+   - `LANGCHAIN_API_KEY`: (Optional) Your LangSmith API key
 
-### Option 2: Manual Setup
+### Option 2: Manual Setup 🛠️
 
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/yourusername/QA-System-using-Gemini-Pro-API.git
+   git clone https://github.com/VisionExpo/QA-System-using-Gemini-Pro-API.git
    cd QA-System-using-Gemini-Pro-API
    ```
 
@@ -116,8 +145,6 @@ The `.gitignore` file is set up to exclude:
    source venv/bin/activate
    ```
 
-   You should see `(venv)` at the beginning of your command prompt, indicating that the virtual environment is active.
-
 3. Install dependencies:
 
    ```bash
@@ -126,68 +153,88 @@ The `.gitignore` file is set up to exclude:
 
 4. Set up your environment variables:
 
-   Copy the example environment file and add your Google API key:
-
    ```bash
    cp .env.example .env
    ```
 
-   Then edit the `.env` file and replace `your_api_key_here` with your actual API key from [Google AI Studio](https://makersuite.google.com/app/apikey).
+   Then edit the `.env` file to add your API keys.
 
-## Usage
+## 🚀 Usage
 
 ### Running the Application
 
-**Streamlit App:**
-
 ```bash
-streamlit run app.py
-```
-
-**Flask Web App:**
-
-```bash
-python flask_app.py
+python app.py
 ```
 
 Then open [http://127.0.0.1:5000](http://127.0.0.1:5000) in your web browser.
 
-### Deactivating the Virtual Environment
+### 💬 Text Q&A Mode
 
-When you're done working on the project, you can deactivate the virtual environment:
+Ask any question and get detailed answers from Gemini Pro:
+
+- General knowledge questions
+- Coding help
+- Explanations of complex topics
+- Creative writing assistance
+
+### 🖼️ Image Analysis Mode
+
+Upload images for AI-powered analysis:
+- Object identification
+- Scene description
+- Text extraction from images
+- Visual content analysis
+
+### 📄 Document Processing
+
+Upload and analyze documents:
+- PDF files
+- Word documents (DOCX)
+- Text files
+- CSV data
+
+### 🔗 URL and YouTube Processing
+
+Analyze content from:
+- Web pages
+- YouTube videos (transcripts and summaries)
+- Online articles
+
+## 🌐 Deployment
+
+This application is deployed on Render. You can access it at:
+[https://qa-system-using-gemini-pro-api-1.onrender.com/](https://qa-system-using-gemini-pro-api-1.onrender.com/)
+
+For detailed deployment instructions, see [RENDER_DEPLOYMENT.md](RENDER_DEPLOYMENT.md).
+
+## 🧪 Testing
+
+To run tests:
 
 ```bash
-deactivate
+python -m pytest tests/
 ```
 
-### Text Q&A Mode
+## 📝 License
 
-In this mode, you can ask text-based questions and receive detailed answers from the Gemini Pro model.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-### Image Analysis Mode
+## 🙏 Acknowledgements
 
-In this mode, you can upload images and optionally provide a prompt to get AI-powered analysis of the image content.
+- Google for the Gemini Pro API
+- DataStax for AstraDB
+- LangChain for LangSmith
+- The open-source community for various libraries used in this project
 
-### Example Usage
+## 📞 Contact
 
-```python
-# Import required libraries
-from dotenv import load_dotenv
-import streamlit as st
-import os
-import google.generativeai as genai
+For questions or feedback, please open an issue on GitHub or contact the maintainer at gorulevishal984@gmail.com.
 
-# Load environment variables
-load_dotenv()
+---
 
-# Configure API
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+<div align="center">
 
-# Initialize model
-model = genai.GenerativeModel('gemini-pro')
+Made with ❤️ by [Vishal Gorule](https://github.com/VisionExpo)
 
-# Get response
-def get_response(question):
-    response = model.generate_content(question)
-    return response.text
-```
+</div>

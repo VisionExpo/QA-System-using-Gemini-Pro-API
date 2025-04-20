@@ -18,6 +18,7 @@ Before deploying, make sure you have:
 1. **Fork or Push to GitHub**
    - Make sure your project is in a GitHub repository
    - Ensure all files are committed and pushed
+   - Make sure the build.sh script is executable (you may need to run `git update-index --chmod=+x build.sh` before committing)
 
 2. **Create a New Web Service on Render**
    - Log in to your Render dashboard
