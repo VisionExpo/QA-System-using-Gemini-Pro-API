@@ -26,6 +26,17 @@ python scripts/list_models.py
 
 This will print a list of all available models and their supported generation methods.
 
+### download_ffmpeg.py
+
+A script to download and set up FFmpeg for video processing.
+
+**Usage:**
+```bash
+python scripts/download_ffmpeg.py
+```
+
+This will download FFmpeg for your platform and install it in the `bin` directory, enabling video processing features in the QA System.
+
 ## Requirements
 
 These scripts require the same environment variables as the main application:
