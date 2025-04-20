@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QA System using Gemini API</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header class="header">
+        <h1>QA System using Gemini API</h1>
+        <div class="header-actions">
+            <a href="https://github.com/yourusername/QA-System-using-Gemini-Pro-API" target="_blank" title="View on GitHub">
+                <i class="fab fa-github"></i>
+            </a>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="chat-container">
+            <div class="chat-messages" id="chat-messages">
+                <!-- Messages will be added here dynamically -->
+                <div class="message ai-message">
+                    <div class="message-avatar ai-avatar">AI</div>
+                    <div class="message-content">
+                        <p>Hello! I'm your AI assistant powered by Google's Gemini API. How can I help you today?</p>
+                        <p>You can ask me questions or upload files like images, PDFs, Word documents, or audio files for analysis.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input-container">
+                <form id="chat-form" class="chat-form">
+                    <div class="file-preview" id="file-preview">
+                        <img id="file-preview-img" src="" alt="File preview">
+                        <div class="file-info">
+                            <div class="file-name" id="file-name"></div>
+                            <div class="file-type" id="file-type"></div>
+                        </div>
+                        <button type="button" class="remove-file" id="remove-file">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <div class="input-group">
+                        <textarea id="chat-input" class="chat-input" placeholder="Type your message here..." rows="1"></textarea>
+                        <div class="input-buttons">
+                            <div class="file-upload">
+                                <input type="file" id="file-input" accept="image/*,application/pdf,.docx,audio/*">
+                                <button type="button" class="file-upload-btn" title="Upload file">
+                                    <i class="fas fa-paperclip"></i>
+                                </button>
+                            </div>
+                            <button type="submit" class="send-btn" id="send-btn">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
