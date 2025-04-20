@@ -2,13 +2,22 @@
 Flask Web App for QA System using Gemini Pro API
 """
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session
 from dotenv import load_dotenv
 import os
 import google.generativeai as genai
 from PIL import Image
 import io
 import base64
+import uuid
+import tempfile
+import fitz  # PyMuPDF for PDF handling
+import docx2txt  # For DOCX handling
+import speech_recognition as sr  # For audio transcription
+import mimetypes
+import re
+import json
+from werkzeug.utils import secure_filename
 
 # Load environment variables
 load_dotenv()
