@@ -28,10 +28,34 @@ This project provides a Q&A interface using Google's Gemini models:
 │   └── requirements.txt    # Dependencies
 ├── app.py                  # Enhanced Q&A application
 ├── setup.py                # Package setup
-└── requirements.txt        # Dependencies
+├── requirements.txt        # Dependencies
+├── .env.example            # Example environment variables file
+├── .gitignore              # Git ignore file
+├── setup_env.bat           # Windows setup script
+├── setup_env.sh            # macOS/Linux setup script
+└── venv/                   # Virtual environment (not tracked by git)
 ```
 
+## Development Setup
+
+### Virtual Environment
+
+This project uses a virtual environment to isolate dependencies. The `.gitignore` file is configured to exclude the virtual environment directory from version control.
+
+### .gitignore
+
+The `.gitignore` file is set up to exclude:
+
+- Virtual environment directories (`venv/`, `.venv/`, etc.)
+- Python cache files and bytecode
+- Environment variables file (`.env`)
+- Log files
+- IDE-specific files
+- Build artifacts
+
 ## Installation
+
+### Option 1: Using Setup Scripts (Recommended)
 
 1. Clone the repository:
 
@@ -40,13 +64,63 @@ This project provides a Q&A interface using Google's Gemini models:
    cd QA-System-using-Gemini-Pro-API
    ```
 
-2. Install dependencies:
+2. Run the setup script:
+
+   **For Windows:**
+
+   ```bash
+   setup_env.bat
+   ```
+
+   **For macOS/Linux:**
+
+   ```bash
+   chmod +x setup_env.sh
+   ./setup_env.sh
+   ```
+
+   This script will:
+   - Create a virtual environment
+   - Activate the virtual environment
+   - Install dependencies
+   - Create a `.env` file from the example if it doesn't exist
+
+3. Edit the `.env` file and replace `your_api_key_here` with your actual API key from [Google AI Studio](https://makersuite.google.com/app/apikey).
+
+### Option 2: Manual Setup
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/yourusername/QA-System-using-Gemini-Pro-API.git
+   cd QA-System-using-Gemini-Pro-API
+   ```
+
+2. Create and activate a virtual environment:
+
+   **For Windows:**
+
+   ```bash
+   python -m venv venv
+   venv\Scripts\activate
+   ```
+
+   **For macOS/Linux:**
+
+   ```bash
+   python -m venv venv
+   source venv/bin/activate
+   ```
+
+   You should see `(venv)` at the beginning of your command prompt, indicating that the virtual environment is active.
+
+3. Install dependencies:
 
    ```bash
    pip install -r requirements.txt
    ```
 
-3. Set up your environment variables:
+4. Set up your environment variables:
 
    Copy the example environment file and add your Google API key:
 
@@ -62,6 +136,14 @@ This project provides a Q&A interface using Google's Gemini models:
 
 ```bash
 streamlit run app.py
+```
+
+### Deactivating the Virtual Environment
+
+When you're done working on the project, you can deactivate the virtual environment:
+
+```bash
+deactivate
 ```
 
 ### Text Q&A Mode
