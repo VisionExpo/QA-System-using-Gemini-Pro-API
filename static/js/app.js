@@ -220,7 +220,15 @@ function addMessage(sender, content) {
 
     const avatarDiv = document.createElement('div');
     avatarDiv.className = `message-avatar ${sender}-avatar`;
-    avatarDiv.textContent = sender === 'user' ? 'U' : 'AI';
+
+    // Set avatar text based on sender type
+    if (sender === 'user') {
+        avatarDiv.textContent = 'U';
+    } else if (sender === 'ai') {
+        avatarDiv.textContent = 'AI';
+    } else if (sender === 'system') {
+        avatarDiv.textContent = 'S';
+    }
 
     const contentDiv = document.createElement('div');
     contentDiv.className = 'message-content';

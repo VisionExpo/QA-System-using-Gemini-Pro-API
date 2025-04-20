@@ -133,6 +133,53 @@ body {
     background-color: var(--primary-color);
 }
 
+.system-avatar {
+    background-color: #9c27b0;
+}
+
+.system-message .message-content {
+    background-color: #f3e5f5;
+    border-left: 4px solid #9c27b0;
+}
+
+/* Similar content styling */
+.similar-content {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f5f5f5;
+    border-radius: 5px;
+    border-left: 3px solid #9c27b0;
+}
+
+.similar-content h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #9c27b0;
+    font-size: 1rem;
+}
+
+.similar-content ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.similar-content li {
+    margin-bottom: 10px;
+}
+
+.similar-content .similarity {
+    color: #666;
+    font-size: 0.85rem;
+}
+
+.similar-content .snippet {
+    display: block;
+    margin-top: 5px;
+    font-size: 0.9rem;
+    color: #555;
+    font-style: italic;
+}
+
 /* Input area */
 .chat-input-container {
     padding: 1rem;
@@ -327,11 +374,11 @@ body {
     .header {
         padding: 0.75rem 1rem;
     }
-    
+
     .header h1 {
         font-size: 1.25rem;
     }
-    
+
     .message-content {
         max-width: 90%;
     }
@@ -350,23 +397,23 @@ body {
         --user-msg-bg: #444654;
         --ai-msg-bg: #343541;
     }
-    
+
     body {
         background-color: #202123;
     }
-    
+
     .header {
         background-color: #202123;
     }
-    
+
     .chat-input-container {
         background-color: #202123;
     }
-    
+
     .input-group {
         background-color: #343541;
     }
-    
+
     .chat-input {
         background-color: #343541;
         color: var(--text-color);
