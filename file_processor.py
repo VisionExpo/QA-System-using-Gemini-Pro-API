@@ -69,6 +69,10 @@ def extract_text_from_pdf(file_path):
 
 def extract_text_from_docx(file_path):
     """Extract text from DOCX file"""
+    if not docx:
+        logger.error("python-docx not installed. Cannot extract text from DOCX.")
+        return "[DOCX text extraction not available. python-docx not installed.]"
+
     try:
         logger.info(f"Extracting text from DOCX: {file_path}")
         doc = docx.Document(file_path)
@@ -81,6 +85,10 @@ def extract_text_from_docx(file_path):
 
 def transcribe_audio(file_path):
     """Transcribe audio file to text"""
+    if not sr:
+        logger.error("SpeechRecognition not installed. Cannot transcribe audio.")
+        return "[Audio transcription not available. SpeechRecognition not installed.]"
+
     try:
         logger.info(f"Transcribing audio: {file_path}")
         recognizer = sr.Recognizer()
