@@ -18,12 +18,20 @@ import re
 import json
 import logging
 from werkzeug.utils import secure_filename
-from file_processor import process_file, is_url, is_youtube_url
-from astra_db import get_astra_db_manager
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+from file_processor import process_file, is_url, is_youtube_url
+
+# Try to import AstraDB manager, but continue if it fails
+try:
+    from astra_db import get_astra_db_manager
+    astra_available = True
+except ImportError:
+    astra_available = False
+    logger.warning("AstraDB module could not be imported. Vector database functionality will be disabled.")
 
 # Load environment variables
 load_dotenv()
@@ -59,12 +67,19 @@ os.makedirs('templates', exist_ok=True)
 os.makedirs('static/css', exist_ok=True)
 os.makedirs('static/js', exist_ok=True)
 
-# Initialize AstraDB manager
-astra_db_manager = get_astra_db_manager()
-if astra_db_manager.is_connected:
-    logger.info("Successfully connected to AstraDB")
+# Initialize AstraDB manager if available
+if 'astra_available' in globals() and astra_available:
+    try:
+        astra_db_manager = get_astra_db_manager()
+        if astra_db_manager.is_connected:
+            logger.info("Successfully connected to AstraDB")
+        else:
+            logger.warning("Not connected to AstraDB. Vector database functionality will be limited.")
+    except Exception as e:
+        logger.error(f"Error initializing AstraDB: {str(e)}")
+        astra_available = False
 else:
-    logger.warning("Not connected to AstraDB. Vector database functionality will be limited.")
+    logger.warning("AstraDB not available. Vector database functionality will be disabled.")
 
 # Allowed file extensions
 ALLOWED_EXTENSIONS = {
@@ -83,30 +98,34 @@ def handle_uploaded_file(file):
     """Process uploaded file and save it to disk"""
     if not file or not allowed_file(file.filename):
         return None, "Invalid file or file type not allowed"
-    
+
     # Create a unique filename
     original_filename = secure_filename(file.filename)
     file_extension = os.path.splitext(original_filename)[1].lower()
     unique_filename = f"{uuid.uuid4()}{file_extension}"
     file_path = os.path.join(UPLOAD_FOLDER, unique_filename)
-    
+
     # Save the file
     file.save(file_path)
     logger.info(f"Saved uploaded file to {file_path}")
-    
+
     return file_path, None
 
 def store_in_vector_db(text, vector, metadata=None):
     """Store text and vector in AstraDB"""
-    if not astra_db_manager.is_connected:
+    if not 'astra_available' in globals() or not astra_available:
+        logger.warning("AstraDB not available. Cannot store vector.")
+        return None
+
+    if not hasattr(globals(), 'astra_db_manager') or not astra_db_manager.is_connected:
         logger.warning("AstraDB not connected. Cannot store vector.")
         return None
-    
+
     try:
         # Add timestamp to metadata
         if not metadata:
             metadata = {}
-        
+
         # Store in AstraDB
         doc_id = astra_db_manager.store_vector(text, vector, metadata)
         if doc_id:
@@ -118,10 +137,14 @@ def store_in_vector_db(text, vector, metadata=None):
 
 def find_similar_content(vector, limit=3):
     """Find similar content in AstraDB"""
-    if not astra_db_manager.is_connected:
+    if not 'astra_available' in globals() or not astra_available:
+        logger.warning("AstraDB not available. Cannot search for similar content.")
+        return []
+
+    if not hasattr(globals(), 'astra_db_manager') or not astra_db_manager.is_connected:
         logger.warning("AstraDB not connected. Cannot search for similar content.")
         return []
-    
+
     try:
         # Search for similar vectors
         results = astra_db_manager.search_similar(vector, limit=limit)
@@ -139,22 +162,22 @@ def summarize_youtube_video(url, transcript):
         prompt = f"""
         Please provide a comprehensive summary of the following YouTube video transcript.
         Focus on the main points, key insights, and important details.
-        
+
         Video URL: {url}
-        
+
         Transcript:
         {transcript[:10000]}  # Limit transcript length to avoid token limits
-        
+
         Please structure your summary with:
         1. A brief overview (1-2 sentences)
         2. Main topics covered
         3. Key points and insights
         4. Conclusion or takeaways
         """
-        
+
         # Generate summary
         response = text_model.generate_content(prompt)
-        
+
         return response.text
     except Exception as e:
         logger.error(f"Error summarizing YouTube video: {str(e)}")
@@ -174,7 +197,7 @@ def chat():
             'error': None,
             'similar_content': []
         }
-        
+
         # Get message from request - handle both form data and JSON
         if request.is_json:
             data = request.get_json()
@@ -183,27 +206,27 @@ def chat():
         else:
             message = request.form.get('message', '')
             logger.info(f"Received form request with message: {message[:50]}...")
-        
+
         # Check if the message is a URL
         is_message_url = is_url(message)
         file_info = None
-        
+
         # Process URL in message if it's a URL
         if is_message_url:
             logger.info(f"Message contains URL: {message}")
             file_info = process_file(message)
-            
+
             # If it's a YouTube URL, we'll handle it specially
             if file_info and file_info['file_type'] == 'youtube':
                 logger.info(f"Processing YouTube URL: {message}")
-                
+
                 # Check if we have a transcript
                 if file_info['text'] and not file_info['error']:
                     # Generate a summary
                     summary = summarize_youtube_video(message, file_info['text'])
-                    
+
                     # Store in vector database if available
-                    if file_info['vector'] is not None and astra_db_manager.is_connected:
+                    if file_info['vector'] is not None and 'astra_available' in globals() and astra_available:
                         metadata = {
                             'type': 'youtube',
                             'url': message,
@@ -212,33 +235,33 @@ def chat():
                         doc_id = store_in_vector_db(file_info['text'], file_info['vector'], metadata)
                         if doc_id:
                             logger.info(f"Stored YouTube transcript in AstraDB with ID: {doc_id}")
-                    
+
                     # Set the response
                     response_data['answer'] = summary
                     return jsonify(response_data)
-        
+
         # Check if there's a file in the request
         file_path = None
-        
+
         if 'file' in request.files and request.files['file'].filename:
             file = request.files['file']
             logger.info(f"Received file: {file.filename}")
-            
+
             # Save and process the file
             file_path, error = handle_uploaded_file(file)
             if error:
                 return jsonify({'error': error}), 400
-            
+
             # Process the file to extract text and generate vector representation
             file_info = process_file(file_path)
             logger.info(f"File type: {file_info['file_type']}")
-            
+
             if file_info['error']:
                 return jsonify({'error': f"Failed to process the file: {file_info['error']}"}), 400
-        
+
         # Find similar content if we have a vector
         similar_content = []
-        if file_info and file_info['vector'] is not None and astra_db_manager.is_connected:
+        if file_info and file_info['vector'] is not None and 'astra_available' in globals() and astra_available:
             similar_docs = find_similar_content(file_info['vector'])
             for doc in similar_docs:
                 if '_id' in doc and 'text' in doc:
@@ -251,37 +274,37 @@ def chat():
                         'url': doc.get('url', None),
                         'similarity': doc.get('$similarity', 0)
                     })
-            
+
             response_data['similar_content'] = similar_content
-        
+
         # Generate content based on message and file
         if file_info and file_info['file_type'] == 'image':
             # For images, use the vision model
             image = Image.open(file_path)
             logger.info(f"Using vision model: {vision_model._model_name}")
-            
+
             if message:
                 logger.info(f"Generating content with message and image")
                 response = vision_model.generate_content([message, image])
             else:
                 logger.info(f"Generating content with image only")
                 response = vision_model.generate_content(image)
-                
+
             response_data['answer'] = response.text
         elif file_info and file_info['text']:
             # For text-based files, include the extracted content in the prompt
             file_type = file_info['file_type'].upper()
             extracted_text = file_info['text']
-            
+
             # Create a prompt that includes the file content
             combined_prompt = f"{message}\n\nContent extracted from {file_type} file:\n{extracted_text}"
             logger.info(f"Using text model with extracted content from {file_type}")
-            
+
             response = text_model.generate_content(combined_prompt)
             response_data['answer'] = response.text
-            
+
             # Store in vector database if available
-            if file_info['vector'] is not None and astra_db_manager.is_connected:
+            if file_info['vector'] is not None and 'astra_available' in globals() and astra_available:
                 metadata = {
                     'type': file_info['file_type'],
                     'query': message,
@@ -294,17 +317,17 @@ def chat():
             # Text-only query
             if not message.strip():
                 return jsonify({'error': 'No message provided'}), 400
-                
+
             logger.info(f"Using text model for message: {message[:50]}...")
             response = text_model.generate_content(message)
             response_data['answer'] = response.text
-        
+
         # Clean up temporary file if needed
         if file_path and os.path.exists(file_path):
             # Keep files for now for debugging purposes
             # In production, you might want to delete them or implement a cleanup job
             pass
-        
+
         return jsonify(response_data)
     except Exception as e:
         import traceback
