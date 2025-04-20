@@ -182,29 +182,6 @@ os.makedirs('templates', exist_ok=True)
 os.makedirs('static/css', exist_ok=True)
 os.makedirs('static/js', exist_ok=True)
 
-# Create CSS file
-with open('static/css/style.css', 'w') as f:
-    f.write('''
-/* Base styles */
-:root {
-    --primary-color: #10a37f;
-    --secondary-color: #f7f7f8;
-    --text-color: #343541;
-    --light-text: #6e6e80;
-    --border-color: #e5e5e5;
-    --hover-color: #0d8c6f;
-    --shadow-color: rgba(0, 0, 0, 0.1);
-    --user-msg-bg: #f7f7f8;
-    --ai-msg-bg: #ffffff;
-    --error-color: #ff4d4f;
-}
-
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     line-height: 1.6;
