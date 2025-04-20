@@ -83,23 +83,52 @@ Before deploying, make sure you have:
 
 ### Common Issues
 
-1. **Build Failures**
+1. **Import Errors**
+   - If you see `ImportError: cannot import name 'app' from 'app'`, check your import structure
+   - Make sure `wsgi.py` is importing from the correct location
+   - Verify that your package structure is correct
+   - Try running the `test_imports.py` script to diagnose import issues
+
+2. **Build Failures**
    - Check the build logs for errors
    - Ensure all dependencies are correctly listed in `requirements.txt`
    - Make sure your Python version is compatible (Render uses Python 3.7 by default)
+   - Verify that the `build.sh` script is executable and runs without errors
 
-2. **Runtime Errors**
+3. **Runtime Errors**
    - Check the application logs in the Render dashboard
    - Verify that all environment variables are correctly set
    - Ensure your AstraDB instance is accessible from Render
+   - Check that the `PYTHONPATH` environment variable is set correctly
 
-3. **Slow Startup**
+4. **Slow Startup**
    - The first deployment may take longer due to downloading dependencies
    - Sentence transformers models are large and may take time to download
 
-4. **Memory Issues**
+5. **Memory Issues**
    - If you encounter memory issues, consider upgrading your Render plan
    - Optimize your code to reduce memory usage
+
+### Debugging Tips
+
+1. **Check Logs**
+   - Always check the build and runtime logs in the Render dashboard
+   - Look for specific error messages and stack traces
+
+2. **Test Locally**
+   - Before deploying, test your application locally with the same command Render will use:
+     ```bash
+     export PYTHONPATH=$PYTHONPATH:$(pwd)
+     gunicorn wsgi:application
+     ```
+
+3. **Verify File Structure**
+   - Make sure your file structure matches what Render expects
+   - Check that all necessary files are included in your repository
+
+4. **Test Imports**
+   - Use the provided `test_imports.py` script to verify that imports work correctly
+   - Run it locally before deploying to Render
 
 ## Scaling on Render
 
