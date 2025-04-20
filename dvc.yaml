@@ -1,0 +1,32 @@
+stages:
+  data_ingestion:
+    cmd: python -m src.llm_monitor.pipeline.data_ingestion
+    deps:
+      - src/llm_monitor/pipeline/data_ingestion.py
+      - data/raw
+    params:
+      - data.raw_data_path
+      - data.processed_data_path
+    outs:
+      - ${data.processed_data_path}
+
+  fine_tuning:
+    cmd: python -m src.llm_monitor.pipeline.fine_tuning
+    deps:
+      - src/llm_monitor/pipeline/fine_tuning.py
+      - ${data.processed_data_path}
+    params:
+      - fine_tuning
+    outs:
+      - models/fine_tuned
+
+  evaluation:
+    cmd: python -m src.llm_monitor.pipeline.evaluation
+    deps:
+      - src/llm_monitor/pipeline/evaluation.py
+      - ${data.processed_data_path}
+    params:
+      - model
+    metrics:
+      - artifacts/evaluation/metrics.json:
+          cache: false
