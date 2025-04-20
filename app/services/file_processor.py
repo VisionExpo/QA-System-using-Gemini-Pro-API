@@ -151,6 +151,12 @@ def text_to_vector(text):
             logger.warning("Sentence transformer model not available")
             return None
 
+        # Handle empty or None text
+        if not text:
+            logger.warning("Empty or None text provided to text_to_vector")
+            # Return a zero vector of the expected dimension
+            return np.zeros(1024)
+
         logger.info(f"Converting {len(text)} characters to vector representation")
         # For long texts, we'll chunk and average the embeddings
         max_length = 512  # Typical max length for transformer models
@@ -169,7 +175,9 @@ def text_to_vector(text):
         return vector
     except Exception as e:
         logger.error(f"Error converting text to vector: {str(e)}")
-        return None
+        # Return a zero vector of the expected dimension instead of None
+        logger.info("Returning zero vector as fallback")
+        return np.zeros(1024)
 
 def process_youtube_url(url):
     """Process a YouTube URL and return transcript and vector representation"""

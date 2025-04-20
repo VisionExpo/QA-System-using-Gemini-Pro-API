@@ -65,6 +65,9 @@ def store_qa_pair(question, answer, vector=None, metadata=None):
         logger.warning("AstraDB not available. Cannot store Q&A pair.")
         return None
 
+    # Import here to avoid circular imports
+    from app.services.file_processor import text_to_vector
+
     try:
         # Create combined text
         qa_text = f"Question: {question}\n\nAnswer: {answer}"
@@ -79,10 +82,22 @@ def store_qa_pair(question, answer, vector=None, metadata=None):
             "answer": answer
         })
 
+        # Generate vector if not provided
+        if vector is None:
+            logger.info("No vector provided for Q&A pair, generating one")
+            vector = text_to_vector(qa_text)
+
+        # Double-check that we have a vector
+        if vector is None:
+            logger.error("Failed to generate vector for Q&A pair")
+            return None
+
         # Store in AstraDB
         doc_id = astra_db_manager.store_vector(qa_text, vector, metadata)
         if doc_id:
             logger.info(f"Stored Q&A pair in AstraDB with ID: {doc_id}")
+        else:
+            logger.error("Failed to store Q&A pair in AstraDB")
         return doc_id
     except Exception as e:
         logger.error(f"Error storing Q&A pair in AstraDB: {str(e)}")

@@ -244,14 +244,24 @@ def chat():
                     logger.info(f"Stored {file_type} content in AstraDB with ID: {doc_id}")
 
                 # Also store the Q&A pair
-                qa_vector = text_to_vector(message + " " + response_data['answer'])
-                qa_metadata = {
-                    'source_type': file_info['file_type'],
-                    'source_id': doc_id
-                }
-                qa_id = store_qa_pair(message, response_data['answer'], qa_vector, qa_metadata)
-                if qa_id:
-                    logger.info(f"Stored Q&A pair in AstraDB with ID: {qa_id}")
+                try:
+                    logger.info("Generating vector for file-based Q&A pair")
+                    qa_vector = text_to_vector(message + " " + response_data['answer'])
+
+                    qa_metadata = {
+                        'source_type': file_info['file_type'],
+                        'source_id': doc_id
+                    }
+
+                    logger.info("Storing file-based Q&A pair in AstraDB")
+                    qa_id = store_qa_pair(message, response_data['answer'], qa_vector, qa_metadata)
+
+                    if qa_id:
+                        logger.info(f"Successfully stored file-based Q&A pair in AstraDB with ID: {qa_id}")
+                    else:
+                        logger.error("Failed to store file-based Q&A pair in AstraDB - no document ID returned")
+                except Exception as e:
+                    logger.error(f"Error storing file-based Q&A pair in AstraDB: {str(e)}")
         else:
             # Text-only query
             if not message.strip():
@@ -269,14 +279,24 @@ def chat():
             response_data['answer'] = response.text
 
             # Store the Q&A pair in AstraDB
-            qa_vector = text_to_vector(message + " " + response_data['answer'])
-            qa_metadata = {
-                'source_type': 'direct_query',
-                'source_id': None
-            }
-            qa_id = store_qa_pair(message, response_data['answer'], qa_vector, qa_metadata)
-            if qa_id:
-                logger.info(f"Stored direct Q&A pair in AstraDB with ID: {qa_id}")
+            try:
+                logger.info("Generating vector for Q&A pair")
+                qa_vector = text_to_vector(message + " " + response_data['answer'])
+
+                qa_metadata = {
+                    'source_type': 'direct_query',
+                    'source_id': None
+                }
+
+                logger.info("Storing Q&A pair in AstraDB")
+                qa_id = store_qa_pair(message, response_data['answer'], qa_vector, qa_metadata)
+
+                if qa_id:
+                    logger.info(f"Successfully stored direct Q&A pair in AstraDB with ID: {qa_id}")
+                else:
+                    logger.error("Failed to store Q&A pair in AstraDB - no document ID returned")
+            except Exception as e:
+                logger.error(f"Error storing Q&A pair in AstraDB: {str(e)}")
 
         # Clean up temporary file if needed
         if file_path and os.path.exists(file_path):
