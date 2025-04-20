@@ -4,8 +4,8 @@ setup(
     name="qa_system",
     version="0.1.0",
     description="A Question and Answer system using Gemini Pro API",
-    author="Vishal",
-    author_email="vishal@example.com",
+    author="Vishal Gorule",
+    author_email="gorulevishal984@gmail.com",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     install_requires=[
