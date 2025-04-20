@@ -182,16 +182,6 @@ os.makedirs('templates', exist_ok=True)
 os.makedirs('static/css', exist_ok=True)
 os.makedirs('static/js', exist_ok=True)
 
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    line-height: 1.6;
-    color: var(--text-color);
-    background-color: var(--secondary-color);
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-}
-
 /* Header */
 .header {
     background-color: #ffffff;
