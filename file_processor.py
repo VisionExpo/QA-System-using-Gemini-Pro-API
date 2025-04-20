@@ -103,6 +103,14 @@ def transcribe_audio(file_path):
 
 def extract_audio_from_video(file_path):
     """Extract audio from video file and transcribe it"""
+    if not VideoFileClip:
+        logger.error("moviepy not installed. Cannot extract audio from video.")
+        return "[Video processing not available. moviepy not installed.]"
+
+    if not sr:
+        logger.error("SpeechRecognition not installed. Cannot transcribe audio from video.")
+        return "[Audio transcription not available. SpeechRecognition not installed.]"
+
     try:
         logger.info(f"Extracting audio from video: {file_path}")
         # Create a temporary file for the audio
