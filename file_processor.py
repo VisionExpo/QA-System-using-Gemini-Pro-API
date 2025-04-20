@@ -8,6 +8,8 @@ import io
 import tempfile
 import mimetypes
 import logging
+import re
+from urllib.parse import urlparse
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -37,6 +39,14 @@ try:
 except ImportError:
     VideoFileClip = None
     logger.warning("moviepy not installed. Video processing will be unavailable.")
+
+# Import YouTube processor with error handling
+try:
+    from youtube_processor import get_youtube_transcript, is_youtube_url
+    youtube_available = True
+except ImportError:
+    youtube_available = False
+    logger.warning("YouTube processor not available. YouTube video processing will be unavailable.")
 from PIL import Image
 from sentence_transformers import SentenceTransformer
 import numpy as np
@@ -177,8 +187,83 @@ def text_to_vector(text):
         logger.error(f"Error converting text to vector: {str(e)}")
         return None
 
+def process_youtube_url(url):
+    """Process a YouTube URL and return transcript and vector representation"""
+    if not youtube_available:
+        logger.error("YouTube processor not available. Cannot process YouTube URL.")
+        return {
+            "file_type": "youtube",
+            "text": "YouTube processing not available. Please install pytube package.",
+            "vector": None,
+            "error": "YouTube processor not available"
+        }
+
+    try:
+        logger.info(f"Processing YouTube URL: {url}")
+
+        # Check if it's a valid YouTube URL
+        if not is_youtube_url(url):
+            logger.error(f"Not a valid YouTube URL: {url}")
+            return {
+                "file_type": "youtube",
+                "text": f"Not a valid YouTube URL: {url}",
+                "vector": None,
+                "error": "Invalid YouTube URL"
+            }
+
+        # Get transcript
+        transcript = get_youtube_transcript(url)
+
+        # Initialize result
+        result = {
+            "file_type": "youtube",
+            "text": transcript,
+            "vector": None,
+            "error": None,
+            "url": url
+        }
+
+        # Generate vector representation
+        if transcript and not isinstance(transcript, str) or (isinstance(transcript, str) and not transcript.startswith("Error")):
+            result["vector"] = text_to_vector(transcript)
+        else:
+            result["error"] = "Failed to get transcript"
+
+        return result
+    except Exception as e:
+        logger.error(f"Error processing YouTube URL: {str(e)}")
+        return {
+            "file_type": "youtube",
+            "text": f"Error processing YouTube URL: {str(e)}",
+            "vector": None,
+            "error": str(e),
+            "url": url
+        }
+
+def is_url(text):
+    """Check if a string is a URL"""
+    try:
+        result = urlparse(text)
+        return all([result.scheme, result.netloc])
+    except:
+        return False
+
 def process_file(file_path):
     """Process file based on its type and return text content and vector representation"""
+    # Check if it's a URL instead of a file path
+    if isinstance(file_path, str) and is_url(file_path):
+        # Check if it's a YouTube URL
+        if youtube_available and is_youtube_url(file_path):
+            return process_youtube_url(file_path)
+        else:
+            logger.error(f"Unsupported URL type: {file_path}")
+            return {
+                "file_type": "url",
+                "text": f"Unsupported URL type: {file_path}",
+                "vector": None,
+                "error": "Unsupported URL type"
+            }
+
     try:
         if not os.path.exists(file_path):
             logger.error(f"File not found: {file_path}")
