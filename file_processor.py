@@ -7,18 +7,39 @@ import os
 import io
 import tempfile
 import mimetypes
-import fitz  # PyMuPDF
-import docx
-import speech_recognition as sr
-from moviepy.editor import VideoFileClip
-from PIL import Image
-from sentence_transformers import SentenceTransformer
-import numpy as np
 import logging
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# Import libraries with error handling
+try:
+    import fitz  # PyMuPDF
+except ImportError:
+    fitz = None
+    logger.warning("PyMuPDF (fitz) not installed. PDF processing will be unavailable.")
+
+try:
+    import docx
+except ImportError:
+    docx = None
+    logger.warning("python-docx not installed. DOCX processing will be unavailable.")
+
+try:
+    import speech_recognition as sr
+except ImportError:
+    sr = None
+    logger.warning("SpeechRecognition not installed. Audio transcription will be unavailable.")
+
+try:
+    from moviepy.editor import VideoFileClip
+except ImportError:
+    VideoFileClip = None
+    logger.warning("moviepy not installed. Video processing will be unavailable.")
+from PIL import Image
+from sentence_transformers import SentenceTransformer
+import numpy as np
 
 # Initialize the sentence transformer model for vectorization
 try:
@@ -30,6 +51,10 @@ except Exception as e:
 
 def extract_text_from_pdf(file_path):
     """Extract text from PDF file"""
+    if not fitz:
+        logger.error("PyMuPDF (fitz) not installed. Cannot extract text from PDF.")
+        return "[PDF text extraction not available. PyMuPDF not installed.]"
+
     try:
         logger.info(f"Extracting text from PDF: {file_path}")
         text = ""
@@ -76,17 +101,17 @@ def extract_audio_from_video(file_path):
         temp_audio = tempfile.NamedTemporaryFile(suffix='.wav', delete=False)
         temp_audio_path = temp_audio.name
         temp_audio.close()
-        
+
         # Extract audio from video
         video = VideoFileClip(file_path)
         video.audio.write_audiofile(temp_audio_path, logger=None)
-        
+
         # Transcribe the audio
         text = transcribe_audio(temp_audio_path)
-        
+
         # Clean up
         os.remove(temp_audio_path)
-        
+
         logger.info(f"Successfully extracted and transcribed audio from video")
         return text
     except Exception as e:
@@ -101,7 +126,7 @@ def describe_image(image_path):
         width, height = img.size
         mode = img.mode
         format_type = img.format
-        
+
         description = f"Image analysis: {width}x{height} {format_type} image in {mode} mode."
         logger.info(f"Generated basic image description")
         return description
@@ -115,21 +140,21 @@ def text_to_vector(text):
         if not sentence_model:
             logger.warning("Sentence transformer model not available")
             return None
-            
+
         logger.info(f"Converting {len(text)} characters to vector representation")
         # For long texts, we'll chunk and average the embeddings
         max_length = 512  # Typical max length for transformer models
         chunks = [text[i:i+max_length] for i in range(0, len(text), max_length)]
-        
+
         # Get embeddings for each chunk
         embeddings = sentence_model.encode(chunks)
-        
+
         # Average the embeddings
         if len(embeddings) > 1:
             vector = np.mean(embeddings, axis=0)
         else:
             vector = embeddings[0]
-            
+
         logger.info(f"Successfully converted text to vector of dimension {vector.shape}")
         return vector
     except Exception as e:
@@ -142,12 +167,12 @@ def process_file(file_path):
         if not os.path.exists(file_path):
             logger.error(f"File not found: {file_path}")
             return {"error": "File not found", "text": None, "vector": None}
-            
+
         mime_type = mimetypes.guess_type(file_path)[0]
         file_extension = os.path.splitext(file_path)[1].lower()
-        
+
         logger.info(f"Processing file: {file_path} (MIME: {mime_type}, Extension: {file_extension})")
-        
+
         # Initialize result
         result = {
             "file_type": None,
@@ -155,7 +180,7 @@ def process_file(file_path):
             "vector": None,
             "error": None
         }
-        
+
         # Process based on file type
         if mime_type:
             if mime_type.startswith('image/'):
@@ -182,11 +207,11 @@ def process_file(file_path):
             result["file_type"] = 'unknown'
             result["text"] = f"Unknown file type for file: {file_path}"
             result["error"] = "Unknown file type"
-        
+
         # Generate vector representation if we have text
         if result["text"] and not result["error"]:
             result["vector"] = text_to_vector(result["text"])
-            
+
         return result
     except Exception as e:
         logger.error(f"Error processing file: {str(e)}")
