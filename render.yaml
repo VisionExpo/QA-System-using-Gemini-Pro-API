@@ -3,7 +3,7 @@ services:
     name: qa-system-gemini
     env: python
     buildCommand: ./build.sh
-    startCommand: gunicorn wsgi:application
+    startCommand: bash ./start.sh
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.0

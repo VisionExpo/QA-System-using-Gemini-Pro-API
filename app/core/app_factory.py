@@ -18,9 +18,31 @@ def create_app():
     from dotenv import load_dotenv
     load_dotenv()
 
+    # Print environment variables for debugging (excluding sensitive values)
+    logger.info("Environment variables loaded. Available keys: %s",
+               [k for k in os.environ.keys() if k.startswith(('GOOGLE_', 'ASTRA_', 'FLASK_', 'PYTHON'))])
+
     # Configure Gemini API
     api_key = os.getenv("GOOGLE_API_KEY")
+
+    # Try alternative methods to get the API key
     if not api_key:
+        logger.warning("GOOGLE_API_KEY not found in environment variables. Trying alternative methods...")
+
+        # Try reading from potential config files
+        for path in ['/etc/secrets/google_api_key', '/tmp/secrets/google_api_key']:
+            try:
+                with open(path, 'r') as f:
+                    api_key = f.read().strip()
+                    logger.info(f"Loaded API key from {path}")
+                    break
+            except (FileNotFoundError, Exception) as e:
+                logger.warning(f"Could not load API key from {path}: {str(e)}")
+
+    if not api_key:
+        # List all environment variables for debugging (excluding values)
+        env_vars = list(os.environ.keys())
+        logger.error(f"Available environment variables: {env_vars}")
         raise ValueError("GOOGLE_API_KEY environment variable not set")
 
     genai.configure(api_key=api_key)
