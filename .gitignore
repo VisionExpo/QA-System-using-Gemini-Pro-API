@@ -50,3 +50,4 @@ logs/
 # Google API credentials
 credentials.json
 token.json
+ffmpeg/ffmpeg.zip
