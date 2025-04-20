@@ -12,6 +12,10 @@ const sendBtn = document.getElementById('send-btn');
 
 // State variables
 let currentFile = null;
+let isProcessingYouTube = false;
+
+// YouTube URL regex pattern
+const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
 
 // Initialize the chat interface
 function initChat() {
@@ -30,6 +34,11 @@ function initChat() {
     });
 }
 
+// Check if a string is a YouTube URL
+function isYouTubeUrl(url) {
+    return youtubeRegex.test(url);
+}
+
 // Handle form submission
 async function handleSubmit(e) {
     e.preventDefault();
@@ -41,8 +50,18 @@ async function handleSubmit(e) {
         return;
     }
 
+    // Check if the message is a YouTube URL
+    const isYouTube = isYouTubeUrl(message);
+    if (isYouTube) {
+        isProcessingYouTube = true;
+    }
+
     // Add user message to chat
-    addMessage('user', message);
+    if (isYouTube) {
+        addMessage('user', `Processing YouTube video: ${message}`);
+    } else {
+        addMessage('user', message);
+    }
 
     // Clear input and reset height
     chatInput.value = '';
@@ -50,6 +69,9 @@ async function handleSubmit(e) {
 
     // Show loading indicator
     showLoadingIndicator();
+    if (isYouTube) {
+        updateLoadingMessage('Fetching and processing YouTube video... This may take a minute.');
+    }
 
     // Prepare data for submission
     let requestData;
@@ -99,6 +121,7 @@ async function handleSubmit(e) {
 
         // Remove loading indicator
         removeLoadingIndicator();
+        isProcessingYouTube = false;
 
         if (data.error) {
             // Show error message
@@ -107,6 +130,29 @@ async function handleSubmit(e) {
         } else {
             // Show AI response
             addMessage('ai', data.answer);
+
+            // Display similar content if available
+            if (data.similar_content && data.similar_content.length > 0) {
+                let similarContentHtml = '<div class="similar-content"><h4>Similar Content Found:</h4><ul>';
+
+                data.similar_content.forEach(item => {
+                    let itemHtml = `<li><strong>${item.type}</strong>: `;
+
+                    if (item.url) {
+                        itemHtml += `<a href="${item.url}" target="_blank">${item.url}</a><br>`;
+                    }
+
+                    itemHtml += `<span class="similarity">Similarity: ${Math.round(item.similarity * 100)}%</span><br>`;
+                    itemHtml += `<span class="snippet">${item.text}</span></li>`;
+
+                    similarContentHtml += itemHtml;
+                });
+
+                similarContentHtml += '</ul></div>';
+
+                // Add similar content as a system message
+                addMessage('system', similarContentHtml);
+            }
         }
     } catch (error) {
         console.error('Fetch error:', error);
@@ -215,11 +261,19 @@ function showLoadingIndicator() {
 
     const contentDiv = document.createElement('div');
     contentDiv.className = 'message-content loading';
+    contentDiv.id = 'loading-content';
 
     const typingIndicator = document.createElement('div');
     typingIndicator.className = 'typing-indicator';
     typingIndicator.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
 
+    // Add a message element
+    const messageElement = document.createElement('div');
+    messageElement.className = 'loading-message-text';
+    messageElement.textContent = 'Generating response...';
+    messageElement.id = 'loading-message-text';
+
+    contentDiv.appendChild(messageElement);
     contentDiv.appendChild(typingIndicator);
     loadingDiv.appendChild(avatarDiv);
     loadingDiv.appendChild(contentDiv);
@@ -227,6 +281,14 @@ function showLoadingIndicator() {
     chatMessages.appendChild(loadingDiv);
 
     scrollToBottom();
+}
+
+// Update loading message
+function updateLoadingMessage(message) {
+    const messageElement = document.getElementById('loading-message-text');
+    if (messageElement) {
+        messageElement.textContent = message;
+    }
 }
 
 // Remove loading indicator
