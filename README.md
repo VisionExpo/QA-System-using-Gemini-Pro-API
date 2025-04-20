@@ -1,56 +1,60 @@
-# LLM Monitor
+# QA System using Gemini Pro API
 
-A comprehensive package for monitoring LLM applications and supporting fine-tuning techniques like LoRA and QLoRA.
+A Question and Answer system built with Google's Gemini Pro API.
 
-## Original Application
+## Application Features
 
-This project extends the original Gemini application:
+This project provides a Q&A interface using Google's Gemini models:
 
-- Gemini-pro for text (app.py)
-- Gemini-pro-vision for image (vision.py)
+- Text-based Q&A using Gemini Pro (app.py)
+- Image analysis using Gemini Pro Vision (vision.py)
 - Deployment: [https://qa-system-using-gemini-pro-api-1.onrender.com/](https://qa-system-using-gemini-pro-api-1.onrender.com/)
 
-## Features
+## Key Features
 
-- **Custom Logging System**: Advanced logging with different levels and formats
-- **LLM Monitoring**: Track latency, token usage, inputs, and outputs
-- **Fine-tuning Support**: Tools for LoRA and QLoRA fine-tuning
-- **Evaluation Pipeline**: Evaluate and compare model performance
-- **Configuration System**: Flexible configuration options
+- **Text Q&A**: Ask questions and get detailed answers
+- **Image Analysis**: Upload images for AI-powered analysis
+- **User-friendly Interface**: Clean Streamlit interface
+- **API Integration**: Seamless integration with Google's Gemini API
+- **Environment Variable Support**: Secure API key management
 
 ## Project Structure
 
 ```plaintext
 .
-├── .github/workflows/       # GitHub Actions workflows
-├── config/                  # Configuration files
-├── src/llm_monitor/         # Main package
-│   ├── components/          # Core components
-│   ├── utils/               # Utility functions
-│   ├── config/              # Configuration handling
-│   ├── pipeline/            # Processing pipelines
-│   ├── entity/              # Data entities
-│   └── constants/           # Constants and enums
-├── app.py                   # Example application
-├── setup.py                 # Package setup
-├── requirements.txt         # Dependencies
-├── params.yaml              # Parameters for DVC
-└── dvc.yaml                 # DVC pipeline configuration
+├── Gemini LLM App/         # Main application directory
+│   ├── app.py              # Text Q&A application
+│   ├── vision.py           # Image analysis application
+│   └── requirements.txt    # Dependencies
+├── app.py                  # Enhanced Q&A application
+├── setup.py                # Package setup
+└── requirements.txt        # Dependencies
 ```
 
 ## Installation
 
-1. Install dependencies:
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/yourusername/QA-System-using-Gemini-Pro-API.git
+   cd QA-System-using-Gemini-Pro-API
+   ```
+
+2. Install dependencies:
 
    ```bash
    pip install -r requirements.txt
    ```
 
-2. For fine-tuning support, install additional dependencies:
+3. Set up your environment variables:
+
+   Copy the example environment file and add your Google API key:
 
    ```bash
-   pip install torch transformers datasets peft accelerate bitsandbytes tensorboard
+   cp .env.example .env
    ```
+
+   Then edit the `.env` file and replace `your_api_key_here` with your actual API key from [Google AI Studio](https://makersuite.google.com/app/apikey).
 
 ## Usage
 
@@ -60,39 +64,34 @@ This project extends the original Gemini application:
 streamlit run app.py
 ```
 
-### Basic Logging
+### Text Q&A Mode
+
+In this mode, you can ask text-based questions and receive detailed answers from the Gemini Pro model.
+
+### Image Analysis Mode
+
+In this mode, you can upload images and optionally provide a prompt to get AI-powered analysis of the image content.
+
+### Example Usage
 
 ```python
-from src.llm_monitor.utils.logger import LLMLogger
+# Import required libraries
+from dotenv import load_dotenv
+import streamlit as st
+import os
+import google.generativeai as genai
 
-# Create a logger
-logger = LLMLogger(log_dir="logs", module_name="my_app")
+# Load environment variables
+load_dotenv()
 
-# Log messages
-logger.info("Application started")
-logger.warning("Warning message")
-logger.error("Error message")
-```
+# Configure API
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
-### Monitoring LLM Models
+# Initialize model
+model = genai.GenerativeModel('gemini-pro')
 
-```python
-from src.llm_monitor.components.monitor import LLMMonitor
-
-# Create a monitor
-monitor = LLMMonitor(
-    model_name="my-model",
-    track_latency=True,
-    track_tokens=True
-)
-
-# Use as a decorator
-@monitor.monitor
-def get_model_response(prompt):
-    # Call your model here
-    return model.generate(prompt)
-
-# Get metrics summary
-metrics = monitor.get_metrics_summary()
-print(metrics)
+# Get response
+def get_response(question):
+    response = model.generate_content(question)
+    return response.text
 ```
