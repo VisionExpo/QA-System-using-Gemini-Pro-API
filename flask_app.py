@@ -177,19 +177,14 @@ def chat():
         print(error_traceback)
         return jsonify({'error': str(e), 'traceback': error_traceback}), 500
 
-# Create templates directory and HTML files
+# Create directories for templates and static files
 os.makedirs('templates', exist_ok=True)
+os.makedirs('static/css', exist_ok=True)
+os.makedirs('static/js', exist_ok=True)
 
-# Create index.html
-with open('templates/index.html', 'w') as f:
+# Create CSS file
+with open('static/css/style.css', 'w') as f:
     f.write('''
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QA System using Gemini API</title>
-    <style>
         body {
             font-family: Arial, sans-serif;
             line-height: 1.6;
