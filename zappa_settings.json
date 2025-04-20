@@ -1,0 +1,30 @@
+{
+    "dev": {
+        "app_function": "wsgi.application",
+        "aws_region": "us-east-1",
+        "profile_name": "default",
+        "project_name": "qa-system-gemini",
+        "runtime": "python3.10",
+        "s3_bucket": "zappa-qa-system-gemini",
+        "environment_variables": {
+            "FLASK_APP": "app.py",
+            "FLASK_ENV": "production"
+        },
+        "memory_size": 1024,
+        "timeout_seconds": 30
+    },
+    "prod": {
+        "app_function": "wsgi.application",
+        "aws_region": "us-east-1",
+        "profile_name": "default",
+        "project_name": "qa-system-gemini",
+        "runtime": "python3.10",
+        "s3_bucket": "zappa-qa-system-gemini-prod",
+        "environment_variables": {
+            "FLASK_APP": "app.py",
+            "FLASK_ENV": "production"
+        },
+        "memory_size": 2048,
+        "timeout_seconds": 60
+    }
+}
