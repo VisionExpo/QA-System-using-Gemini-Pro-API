@@ -6,14 +6,18 @@ setup(
     description="A Question and Answer system using Gemini Pro API",
     author="Vishal Gorule",
     author_email="gorulevishal984@gmail.com",
-    packages=find_packages(where="src"),
-    package_dir={"": "src"},
+    packages=find_packages(),
     install_requires=[
-        "streamlit>=1.10.0",
+        "flask>=2.0.0",
         "google-generativeai>=0.3.0",
         "python-dotenv>=0.19.0",
         "pillow>=9.0.0",
         "requests>=2.25.0",
+        "pymupdf>=1.19.0",
+        "python-docx>=0.8.11",
+        "sentence-transformers>=2.2.0",
+        "astrapy>=0.5.0",
+        "langsmith>=0.0.30"
     ],
     python_requires=">=3.8",
     classifiers=[
