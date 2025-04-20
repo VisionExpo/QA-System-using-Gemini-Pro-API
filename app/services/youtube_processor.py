@@ -118,34 +118,52 @@ def get_video_info(url):
             'description': f"Error accessing video: {str(e)}"
         }
 
-def download_audio(url, output_path=None):
-    """Download the audio from a YouTube video"""
-    try:
-        logger.info(f"Downloading audio from YouTube video: {url}")
-        yt = YouTube(url)
+def download_audio(url, output_path=None, max_retries=3):
+    """Download the audio from a YouTube video with retries and error handling"""
+    for attempt in range(max_retries):
+        try:
+            logger.info(f"Downloading audio from YouTube video: {url} (Attempt {attempt+1}/{max_retries})")
 
-        # Get the audio stream with the highest quality
-        audio_stream = yt.streams.filter(only_audio=True).order_by('abr').desc().first()
+            # Clean the URL by removing any parameters after the video ID
+            clean_url = url.split('&')[0] if '&' in url else url
 
-        if not audio_stream:
-            logger.error("No audio stream found for this video")
-            return None
+            # Add options to avoid age restriction issues
+            yt = YouTube(
+                clean_url,
+                use_oauth=False,
+                allow_oauth_cache=False
+            )
 
-        # Create a temporary file if no output path is provided
-        if not output_path:
-            temp_dir = tempfile.gettempdir()
-            video_id = extract_video_id(url)
-            output_path = os.path.join(temp_dir, f"{video_id}.mp4")
+            # Get the audio stream with the highest quality
+            audio_stream = yt.streams.filter(only_audio=True).order_by('abr').desc().first()
 
-        # Download the audio
-        audio_stream.download(output_path=os.path.dirname(output_path),
-                             filename=os.path.basename(output_path))
+            if not audio_stream:
+                logger.error("No audio stream found for this video")
+                return None
 
-        logger.info(f"Successfully downloaded audio to {output_path}")
-        return output_path
-    except Exception as e:
-        logger.error(f"Error downloading YouTube audio: {str(e)}")
-        return None
+            # Create a temporary file if no output path is provided
+            if not output_path:
+                temp_dir = tempfile.gettempdir()
+                video_id = extract_video_id(clean_url)
+                output_path = os.path.join(temp_dir, f"{video_id}.mp4")
+
+            # Download the audio
+            audio_stream.download(output_path=os.path.dirname(output_path),
+                                filename=os.path.basename(output_path))
+
+            logger.info(f"Successfully downloaded audio to {output_path}")
+            return output_path
+        except Exception as e:
+            logger.error(f"Error downloading YouTube audio (Attempt {attempt+1}/{max_retries}): {str(e)}")
+            if attempt < max_retries - 1:
+                # Wait before retrying (exponential backoff)
+                wait_time = 2 ** attempt
+                logger.info(f"Retrying in {wait_time} seconds...")
+                import time
+                time.sleep(wait_time)
+            else:
+                logger.error(f"Failed to download audio after {max_retries} attempts")
+                return None
 
 def transcribe_youtube_audio(url):
     """Download and transcribe a YouTube video"""
@@ -239,23 +257,37 @@ def get_youtube_transcript(url):
 
         video_summary += "\n"
 
-        # Try to transcribe the video if no error in video info
+        # Try to transcribe the video if no error in video info and SpeechRecognition is available
+        transcription_success = False
         if 'error' not in video_info and sr_available:
             try:
                 logger.info(f"Attempting to transcribe video: {clean_url}")
                 transcript_result = transcribe_youtube_audio(clean_url)
                 if isinstance(transcript_result, dict) and 'transcript' in transcript_result:
-                    return video_summary + "Transcript:\n" + transcript_result['transcript']
+                    video_summary += "Transcript:\n" + transcript_result['transcript']
+                    transcription_success = True
                 else:
-                    return video_summary + f"Transcription failed: {transcript_result}\n\nPlease provide a summary of what you'd like to know about this video instead."
+                    logger.warning(f"Transcription failed: {transcript_result}")
+                    video_summary += f"Transcription failed: {transcript_result}\n"
             except Exception as e:
                 logger.error(f"Error transcribing video: {str(e)}")
-                return video_summary + f"Transcription failed: {str(e)}\n\nPlease provide a summary of what you'd like to know about this video instead."
+                video_summary += f"Transcription failed: {str(e)}\n"
         else:
             if 'error' in video_info:
-                return video_summary + "\nTranscription not attempted due to error accessing video.\n\nPlease provide a summary of what you'd like to know about this video instead."
+                video_summary += "\nTranscription not attempted due to error accessing video.\n"
             else:
-                return video_summary + "\nTranscription not available. SpeechRecognition library not installed.\n\nPlease provide a summary of what you'd like to know about this video instead."
+                video_summary += "\nTranscription not available. SpeechRecognition library not installed.\n"
+
+        # Add a note about using the description as a fallback
+        if not transcription_success and video_info.get('description'):
+            video_summary += "\nUsing video description as a fallback since transcription was not available:\n\n"
+            # Include the full description now
+            video_summary += video_info.get('description', '')
+
+        # Add a prompt for the user
+        video_summary += "\n\nPlease provide a summary of what you'd like to know about this video."
+
+        return video_summary
     except Exception as e:
         logger.error(f"Error processing YouTube video: {str(e)}")
         return f"Error processing YouTube video: {str(e)}\n\nPlease provide a summary of what you'd like to know about this video instead."
