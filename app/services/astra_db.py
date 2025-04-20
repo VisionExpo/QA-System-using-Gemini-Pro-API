@@ -171,20 +171,38 @@ class AstraDBManager:
                 )
             except AttributeError:
                 # Fall back to find method with vector parameter
+                logger.info("vector_search method not available, using find with vector similarity")
                 results = self.collection.find(
                     filter={},
-                    sort={"$vector": vector},
-                    limit=limit
+                    options={"sort": {"$vector": vector}, "limit": limit}
                 )
 
             # Process results to match expected format
             processed_results = []
             for result in results:
-                # Add the similarity score to the document
-                doc = result["document"]
-                doc["_id"] = result["id"]
-                doc["$similarity"] = result["similarity"]
-                processed_results.append(doc)
+                try:
+                    # Handle different response formats
+                    if "document" in result:
+                        # Standard vector_search response format
+                        doc = result["document"]
+                        doc["_id"] = result.get("id", "unknown")
+                        doc["$similarity"] = result.get("similarity", 1.0)
+                    elif "_id" in result:
+                        # Alternative format from find method
+                        doc = result
+                        if "$similarity" not in doc:
+                            doc["$similarity"] = 1.0
+                    else:
+                        # Unknown format, try to use as is
+                        doc = result
+                        if "$similarity" not in doc:
+                            doc["$similarity"] = 1.0
+                        if "_id" not in doc:
+                            doc["_id"] = "unknown"
+
+                    processed_results.append(doc)
+                except Exception as e:
+                    logger.warning(f"Error processing result: {str(e)}")
 
             logger.info(f"Found {len(processed_results)} similar documents")
             return processed_results
