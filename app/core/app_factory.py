@@ -22,9 +22,19 @@ def create_app():
     from dotenv import load_dotenv
     load_dotenv()
 
+    # Check if we're running on Render
+    is_render = bool(os.getenv('RENDER') or os.getenv('RENDER_SERVICE_ID'))
+
     # Print environment variables for debugging (excluding sensitive values)
     logger.info("Environment variables loaded. Available keys: %s",
-               [k for k in os.environ.keys() if k.startswith(('GOOGLE_', 'ASTRA_', 'FLASK_', 'PYTHON'))])
+               [k for k in os.environ.keys() if k.startswith(('GOOGLE_', 'ASTRA_', 'FLASK_', 'PYTHON', 'PORT', 'RENDER'))])
+
+    # Get PORT from environment (for Render)
+    port = os.getenv('PORT')
+    if port:
+        logger.info(f"PORT environment variable found: {port}")
+    else:
+        logger.warning("PORT environment variable not found, will use default")
 
     # Configure Gemini API
     api_key = os.getenv("GOOGLE_API_KEY")
@@ -49,7 +59,7 @@ def create_app():
         logger.error(f"Available environment variables: {env_vars}")
 
         # Check if we're in development or production
-        if os.getenv('RENDER') or os.getenv('RENDER_SERVICE_ID'):
+        if is_render:
             # We're on Render - use a hardcoded key for now as a last resort
             logger.warning("Using hardcoded API key as a fallback. Please set GOOGLE_API_KEY in Render dashboard!")
             # Use the key from your .env file
@@ -77,6 +87,33 @@ def create_app():
     upload_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
     os.makedirs(upload_folder, exist_ok=True)
     app.config['UPLOAD_FOLDER'] = upload_folder
+
+    # Set configuration for Render deployment
+    if is_render:
+        # Disable heavy components in production to reduce memory usage
+        app.config['DISABLE_VECTOR_DB'] = True
+        app.config['DISABLE_SENTENCE_TRANSFORMER'] = True
+        app.config['LIGHTWEIGHT_MODE'] = True
+        logger.warning("Running in lightweight mode - some features disabled to reduce memory usage")
+
+    # Add a simple health check route that doesn't require any models
+    @app.route('/health')
+    def health_check():
+        return {"status": "ok", "message": "Service is running"}
+
+    # Add a simple root route that doesn't require any models
+    @app.route('/')
+    def root():
+        return """
+        <html>
+            <head><title>QA System</title></head>
+            <body>
+                <h1>QA System using Gemini Pro API</h1>
+                <p>The service is running. Access the full interface at /chat</p>
+                <p><a href="/chat">Go to Chat Interface</a></p>
+            </body>
+        </html>
+        """
 
     # Register blueprints
     from app.core.routes import main_bp
