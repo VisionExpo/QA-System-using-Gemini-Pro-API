@@ -59,6 +59,17 @@ printenv | cut -d= -f1 | sort
 echo "Specific environment variables:"
 printenv | grep -E "GOOGLE_|ASTRA_|FLASK_|PYTHON|RENDER" | cut -d= -f1
 
-# Start gunicorn
-echo "Starting gunicorn with environment variables..."
-exec gunicorn wsgi:application "$@"
+# Start gunicorn with optimized settings for memory usage
+echo "Starting gunicorn with optimized settings..."
+# --timeout 120: Increase worker timeout to 120 seconds
+# --workers 1: Use only 1 worker to reduce memory usage
+# --threads 2: Use 2 threads per worker for concurrency
+# --max-requests 1000: Restart workers after 1000 requests to prevent memory leaks
+# --max-requests-jitter 50: Add jitter to prevent all workers from restarting at once
+exec gunicorn wsgi:application \
+    --timeout 120 \
+    --workers 1 \
+    --threads 2 \
+    --max-requests 1000 \
+    --max-requests-jitter 50 \
+    "$@"

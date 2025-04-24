@@ -4,6 +4,14 @@ services:
     env: python
     buildCommand: ./build.sh
     startCommand: bash ./start.sh
+    plan: standard
+    # Increase memory and CPU allocation
+    autoscaling:
+      min_instances: 1
+      max_instances: 1
+    # Increase startup timeout to allow for model loading
+    healthCheckPath: /
+    healthCheckTimeout: 180
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.0

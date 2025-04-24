@@ -14,6 +14,10 @@ logger = logging.getLogger(__name__)
 def create_app():
     """Create and configure the Flask app"""
 
+    # Try to optimize memory usage
+    import gc
+    gc.collect()  # Force garbage collection
+
     # Load environment variables from .env file
     from dotenv import load_dotenv
     load_dotenv()

@@ -49,14 +49,22 @@ from PIL import Image
 from sentence_transformers import SentenceTransformer
 import numpy as np
 
-# Initialize the sentence transformer model for vectorization
-try:
-    # Use a model with 1024 dimensions to match AstraDB collection
-    sentence_model = SentenceTransformer('BAAI/bge-large-en-v1.5')
-    logger.info("Sentence transformer model loaded successfully")
-except Exception as e:
-    logger.error(f"Error loading sentence transformer model: {str(e)}")
-    sentence_model = None
+# Initialize the sentence transformer model lazily
+sentence_model = None
+
+def get_sentence_model():
+    """Lazily load the sentence transformer model only when needed"""
+    global sentence_model
+    if sentence_model is None:
+        try:
+            logger.info("Loading sentence transformer model (lazy initialization)...")
+            # Use a model with 1024 dimensions to match AstraDB collection
+            sentence_model = SentenceTransformer('BAAI/bge-large-en-v1.5')
+            logger.info("Sentence transformer model loaded successfully")
+        except Exception as e:
+            logger.error(f"Error loading sentence transformer model: {str(e)}")
+            return None
+    return sentence_model
 
 def extract_text_from_pdf(file_path):
     """Extract text from PDF file"""
@@ -147,9 +155,11 @@ def describe_image(image_path):
 def text_to_vector(text):
     """Convert text to vector representation using sentence transformers"""
     try:
-        if not sentence_model:
+        # Get the model (will be lazily loaded if not already loaded)
+        model = get_sentence_model()
+        if not model:
             logger.warning("Sentence transformer model not available")
-            return None
+            return np.zeros(1024)  # Return zero vector as fallback
 
         # Handle empty or None text
         if not text:
@@ -163,7 +173,7 @@ def text_to_vector(text):
         chunks = [text[i:i+max_length] for i in range(0, len(text), max_length)]
 
         # Get embeddings for each chunk
-        embeddings = sentence_model.encode(chunks)
+        embeddings = model.encode(chunks)
 
         # Average the embeddings
         if len(embeddings) > 1:
