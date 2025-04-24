@@ -118,7 +118,32 @@ def create_app():
         </html>
         """
 
-    # Create a minimal chat route that doesn't require loading the full blueprint
+    # Create a simple API endpoint for questions
+    @app.route('/api/ask', methods=['POST'])
+    def api_ask():
+        from flask import request, jsonify
+        import google.generativeai as genai
+
+        try:
+            data = request.get_json()
+            question = data.get('question', '')
+
+            if not question:
+                return jsonify({"error": "No question provided"}), 400
+
+            # Use Gemini API to get an answer
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            response = model.generate_content(question)
+
+            return jsonify({
+                "answer": response.text,
+                "status": "success"
+            })
+        except Exception as e:
+            logger.error(f"Error in API endpoint: {str(e)}")
+            return jsonify({"error": str(e)}), 500
+
+    # Create a minimal chat route with basic functionality
     @app.route('/chat')
     def minimal_chat():
         return """
@@ -133,33 +158,83 @@ def create_app():
                     .bot { background-color: #f0f0f0; }
                     textarea { width: 100%; padding: 10px; margin-top: 20px; }
                     button { padding: 10px 20px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+                    .loading { color: #888; font-style: italic; }
                 </style>
             </head>
             <body>
                 <div class="chat-container">
                     <h1>QA System using Gemini Pro API</h1>
-                    <p>This is a minimal chat interface. The full functionality is disabled in lightweight mode.</p>
-                    <div class="message bot">Hello! I'm running in lightweight mode to conserve memory. Ask me a simple question!</div>
+                    <p>This is a minimal chat interface with basic functionality.</p>
+                    <div class="message bot">Hello! I'm running in lightweight mode but I can still answer simple questions. What would you like to know?</div>
                     <div id="messages"></div>
                     <textarea id="user-input" placeholder="Type your message here..."></textarea>
-                    <button onclick="sendMessage()">Send</button>
+                    <button id="send-button" onclick="sendMessage()">Send</button>
                 </div>
                 <script>
                     function sendMessage() {
                         const input = document.getElementById('user-input');
                         const message = input.value.trim();
+                        const button = document.getElementById('send-button');
+
                         if (message) {
                             // Add user message
                             const messagesDiv = document.getElementById('messages');
                             messagesDiv.innerHTML += `<div class="message user">${message}</div>`;
 
-                            // Add bot response
-                            messagesDiv.innerHTML += `<div class="message bot">I'm running in lightweight mode. Full functionality is disabled to conserve memory on Render.</div>`;
+                            // Add loading message
+                            const loadingId = 'loading-' + Date.now();
+                            messagesDiv.innerHTML += `<div id="${loadingId}" class="message bot loading">Thinking...</div>`;
+
+                            // Disable button while processing
+                            button.disabled = true;
 
                             // Clear input
                             input.value = '';
+
+                            // Send request to API
+                            fetch('/api/ask', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({ question: message }),
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                // Remove loading message
+                                document.getElementById(loadingId).remove();
+
+                                // Add bot response
+                                if (data.error) {
+                                    messagesDiv.innerHTML += `<div class="message bot">Sorry, I encountered an error: ${data.error}</div>`;
+                                } else {
+                                    messagesDiv.innerHTML += `<div class="message bot">${data.answer}</div>`;
+                                }
+
+                                // Re-enable button
+                                button.disabled = false;
+                            })
+                            .catch(error => {
+                                // Remove loading message
+                                document.getElementById(loadingId).remove();
+
+                                // Add error message
+                                messagesDiv.innerHTML += `<div class="message bot">Sorry, there was an error processing your request. Please try again.</div>`;
+                                console.error('Error:', error);
+
+                                // Re-enable button
+                                button.disabled = false;
+                            });
                         }
                     }
+
+                    // Allow pressing Enter to send message
+                    document.getElementById('user-input').addEventListener('keypress', function(e) {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            sendMessage();
+                        }
+                    });
                 </script>
             </body>
         </html>
