@@ -43,7 +43,16 @@ def create_app():
         # List all environment variables for debugging (excluding values)
         env_vars = list(os.environ.keys())
         logger.error(f"Available environment variables: {env_vars}")
-        raise ValueError("GOOGLE_API_KEY environment variable not set")
+
+        # Check if we're in development or production
+        if os.getenv('RENDER') or os.getenv('RENDER_SERVICE_ID'):
+            # We're on Render - use a hardcoded key for now as a last resort
+            logger.warning("Using hardcoded API key as a fallback. Please set GOOGLE_API_KEY in Render dashboard!")
+            # Use the key from your .env file
+            api_key = 'AIzaSyCp6kib0jZIIbm0DbZfmrbd906AliTVUD4'  # Your API key from .env
+        else:
+            # In development, we should fail if the key is missing
+            raise ValueError("GOOGLE_API_KEY environment variable not set")
 
     genai.configure(api_key=api_key)
 

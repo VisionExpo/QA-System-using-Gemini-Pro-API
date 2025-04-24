@@ -11,10 +11,13 @@ services:
         value: /app
       - key: GOOGLE_API_KEY
         sync: false
+        # Note: You MUST set this value in the Render dashboard!
       - key: ASTRA_DB_TOKEN
         sync: false
+        # Note: You MUST set this value in the Render dashboard!
       - key: ASTRA_DB_ENDPOINT
         sync: false
+        # Note: You MUST set this value in the Render dashboard!
       - key: ASTRA_DB_COLLECTION
         value: qa_system_vectors
       - key: LANGCHAIN_API_KEY
