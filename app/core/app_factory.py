@@ -63,7 +63,7 @@ def create_app():
             # We're on Render - use a hardcoded key for now as a last resort
             logger.warning("Using hardcoded API key as a fallback. Please set GOOGLE_API_KEY in Render dashboard!")
             # Use the key from your .env file
-            api_key = 'AIzaSyCp6kib0jZIIbm0DbZfmrbd906AliTVUD4'  # Your API key from .env
+            api_key = 'AIzaSyCOZ3qbIUsL6a-OyUD-lm13QUgXGFydPSM'  # Your API key from .env
         else:
             # In development, we should fail if the key is missing
             raise ValueError("GOOGLE_API_KEY environment variable not set")

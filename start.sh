@@ -37,7 +37,7 @@ else
 
         # Create a .env file with hardcoded values as a last resort
         echo "Creating .env file with hardcoded values as a last resort..."
-        echo "GOOGLE_API_KEY=AIzaSyCp6kib0jZIIbm0DbZfmrbd906AliTVUD4" > .env
+        echo "GOOGLE_API_KEY=AIzaSyCOZ3qbIUsL6a-OyUD-lm13QUgXGFydPSM" > .env
         echo "Created .env file with hardcoded API key"
 
         # Load the newly created .env file
