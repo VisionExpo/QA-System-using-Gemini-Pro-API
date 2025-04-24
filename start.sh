@@ -63,21 +63,35 @@ printenv | grep -E "GOOGLE_|ASTRA_|FLASK_|PYTHON|RENDER" | cut -d= -f1
 PORT=${PORT:-5000}
 echo "PORT environment variable: $PORT"
 
-# Start gunicorn with optimized settings for memory usage
-echo "Starting gunicorn with optimized settings on port $PORT..."
-# --timeout 180: Increase worker timeout to 180 seconds (3 minutes)
+# Set environment variables to optimize memory usage
+export PYTHONUNBUFFERED=1
+export PYTHONOPTIMIZE=1
+export PYTHONHASHSEED=random
+
+# Disable unnecessary services
+export DISABLE_VECTOR_DB=true
+export DISABLE_SENTENCE_TRANSFORMER=true
+export DISABLE_LANGSMITH=true
+export LIGHTWEIGHT_MODE=true
+export LAZY_LOAD_MODELS=true
+
+# Start gunicorn with extreme memory optimization settings
+echo "Starting gunicorn with extreme memory optimization on port $PORT..."
+# --timeout 300: Increase worker timeout to 5 minutes
 # --workers 1: Use only 1 worker to reduce memory usage
-# --threads 2: Use 2 threads per worker for concurrency
-# --max-requests 1000: Restart workers after 1000 requests to prevent memory leaks
+# --threads 1: Use 1 thread per worker to reduce memory usage
+# --max-requests 100: Restart workers after 100 requests to prevent memory leaks
 # --max-requests-jitter 50: Add jitter to prevent all workers from restarting at once
-# --preload: Load application code before forking worker processes
 # --bind: Explicitly bind to the PORT environment variable
+# --worker-class=sync: Use sync worker class (simplest, lowest memory usage)
+# --worker-tmp-dir /dev/shm: Use shared memory for temporary files
 exec gunicorn wsgi:application \
-    --timeout 180 \
+    --timeout 300 \
     --workers 1 \
-    --threads 2 \
-    --max-requests 1000 \
+    --threads 1 \
+    --max-requests 100 \
     --max-requests-jitter 50 \
-    --preload \
+    --worker-class=sync \
+    --worker-tmp-dir /dev/shm \
     --bind 0.0.0.0:$PORT \
     "$@"

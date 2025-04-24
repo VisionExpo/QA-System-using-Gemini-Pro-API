@@ -36,7 +36,7 @@ def create_app():
     else:
         logger.warning("PORT environment variable not found, will use default")
 
-    # Configure Gemini API
+    # Configure Gemini API - but don't initialize the model yet
     api_key = os.getenv("GOOGLE_API_KEY")
 
     # Try alternative methods to get the API key
@@ -68,6 +68,7 @@ def create_app():
             # In development, we should fail if the key is missing
             raise ValueError("GOOGLE_API_KEY environment variable not set")
 
+    # Configure Gemini API but don't initialize models yet
     genai.configure(api_key=api_key)
 
     # Create Flask app
@@ -93,7 +94,9 @@ def create_app():
         # Disable heavy components in production to reduce memory usage
         app.config['DISABLE_VECTOR_DB'] = True
         app.config['DISABLE_SENTENCE_TRANSFORMER'] = True
+        app.config['DISABLE_LANGSMITH'] = True
         app.config['LIGHTWEIGHT_MODE'] = True
+        app.config['LAZY_LOAD_MODELS'] = True
         logger.warning("Running in lightweight mode - some features disabled to reduce memory usage")
 
     # Add a simple health check route that doesn't require any models
@@ -115,8 +118,60 @@ def create_app():
         </html>
         """
 
-    # Register blueprints
-    from app.core.routes import main_bp
-    app.register_blueprint(main_bp)
+    # Create a minimal chat route that doesn't require loading the full blueprint
+    @app.route('/chat')
+    def minimal_chat():
+        return """
+        <html>
+            <head>
+                <title>QA System - Chat</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+                    .chat-container { max-width: 800px; margin: 0 auto; }
+                    .message { padding: 10px; margin-bottom: 10px; border-radius: 5px; }
+                    .user { background-color: #e6f7ff; text-align: right; }
+                    .bot { background-color: #f0f0f0; }
+                    textarea { width: 100%; padding: 10px; margin-top: 20px; }
+                    button { padding: 10px 20px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+                </style>
+            </head>
+            <body>
+                <div class="chat-container">
+                    <h1>QA System using Gemini Pro API</h1>
+                    <p>This is a minimal chat interface. The full functionality is disabled in lightweight mode.</p>
+                    <div class="message bot">Hello! I'm running in lightweight mode to conserve memory. Ask me a simple question!</div>
+                    <div id="messages"></div>
+                    <textarea id="user-input" placeholder="Type your message here..."></textarea>
+                    <button onclick="sendMessage()">Send</button>
+                </div>
+                <script>
+                    function sendMessage() {
+                        const input = document.getElementById('user-input');
+                        const message = input.value.trim();
+                        if (message) {
+                            // Add user message
+                            const messagesDiv = document.getElementById('messages');
+                            messagesDiv.innerHTML += `<div class="message user">${message}</div>`;
+
+                            // Add bot response
+                            messagesDiv.innerHTML += `<div class="message bot">I'm running in lightweight mode. Full functionality is disabled to conserve memory on Render.</div>`;
+
+                            // Clear input
+                            input.value = '';
+                        }
+                    }
+                </script>
+            </body>
+        </html>
+        """
+
+    # Only register blueprints if not in lightweight mode
+    if not is_render:
+        try:
+            from app.core.routes import main_bp
+            app.register_blueprint(main_bp)
+        except Exception as e:
+            logger.error(f"Error registering blueprints: {str(e)}")
+            # Continue without blueprints in lightweight mode
 
     return app

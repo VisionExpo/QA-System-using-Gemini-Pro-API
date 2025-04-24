@@ -10,13 +10,28 @@ services:
       min_instances: 1
       max_instances: 1
     # Increase startup timeout to allow for model loading
-    healthCheckPath: /
-    healthCheckTimeout: 180
+    healthCheckPath: /health
+    healthCheckTimeout: 300
+    # Optimize for memory usage
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.0
       - key: PYTHONPATH
         value: /app
+      - key: DISABLE_VECTOR_DB
+        value: "true"
+      - key: DISABLE_SENTENCE_TRANSFORMER
+        value: "true"
+      - key: DISABLE_LANGSMITH
+        value: "true"
+      - key: LIGHTWEIGHT_MODE
+        value: "true"
+      - key: LAZY_LOAD_MODELS
+        value: "true"
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: PYTHONOPTIMIZE
+        value: "1"
       - key: GOOGLE_API_KEY
         sync: false
         # Note: You MUST set this value in the Render dashboard!
