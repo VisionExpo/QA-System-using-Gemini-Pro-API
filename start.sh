@@ -59,17 +59,25 @@ printenv | cut -d= -f1 | sort
 echo "Specific environment variables:"
 printenv | grep -E "GOOGLE_|ASTRA_|FLASK_|PYTHON|RENDER" | cut -d= -f1
 
+# Get the PORT from environment variable (for Render)
+PORT=${PORT:-5000}
+echo "PORT environment variable: $PORT"
+
 # Start gunicorn with optimized settings for memory usage
-echo "Starting gunicorn with optimized settings..."
-# --timeout 120: Increase worker timeout to 120 seconds
+echo "Starting gunicorn with optimized settings on port $PORT..."
+# --timeout 180: Increase worker timeout to 180 seconds (3 minutes)
 # --workers 1: Use only 1 worker to reduce memory usage
 # --threads 2: Use 2 threads per worker for concurrency
 # --max-requests 1000: Restart workers after 1000 requests to prevent memory leaks
 # --max-requests-jitter 50: Add jitter to prevent all workers from restarting at once
+# --preload: Load application code before forking worker processes
+# --bind: Explicitly bind to the PORT environment variable
 exec gunicorn wsgi:application \
-    --timeout 120 \
+    --timeout 180 \
     --workers 1 \
     --threads 2 \
     --max-requests 1000 \
     --max-requests-jitter 50 \
+    --preload \
+    --bind 0.0.0.0:$PORT \
     "$@"
