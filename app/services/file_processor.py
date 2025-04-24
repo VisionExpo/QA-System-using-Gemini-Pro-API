@@ -55,6 +55,13 @@ sentence_model = None
 def get_sentence_model():
     """Lazily load the sentence transformer model only when needed"""
     global sentence_model
+
+    # Check if we're in lightweight mode (for Render deployment)
+    from flask import current_app
+    if current_app and current_app.config.get('DISABLE_SENTENCE_TRANSFORMER'):
+        logger.warning("Sentence transformer disabled in lightweight mode")
+        return None
+
     if sentence_model is None:
         try:
             logger.info("Loading sentence transformer model (lazy initialization)...")
